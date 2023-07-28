@@ -1,0 +1,742 @@
+# This file contains mappings for functions or modules to concrete capabilities
+# as well as some additional data that Capslock requires for analysis.
+
+# The "func" keyword defines a mapping from a function to a capability.
+# The following line marks the WriteString method on *bytes.Buffer as SAFE.
+func (*bytes.Buffer).WriteString CAPABILITY_SAFE
+
+func compress/bzip2.newHuffmanTree CAPABILITY_SAFE
+func compress/flate.fixedHuffmanDecoderInit CAPABILITY_SAFE
+func (*crypto/x509.Certificate).checkNameConstraints CAPABILITY_SAFE
+func crypto/cipher.xorBytesSSE2 CAPABILITY_SAFE
+func crypto/ecdh.init CAPABILITY_SAFE
+func crypto/ecdsa.init CAPABILITY_SAFE
+func crypto/internal/boring.init CAPABILITY_SAFE
+func crypto/internal/nistec.init CAPABILITY_SAFE
+func crypto/md5.init CAPABILITY_SAFE
+func crypto/rand.Read CAPABILITY_SAFE
+func crypto/rand.getRandom CAPABILITY_SAFE
+func crypto/rand.init CAPABILITY_SAFE
+func (*crypto/rand.reader).Read CAPABILITY_SAFE
+func crypto/rsa.init CAPABILITY_SAFE
+func crypto/sha1.init CAPABILITY_SAFE
+func crypto/sha256.init CAPABILITY_SAFE
+func crypto/sha512.init CAPABILITY_SAFE
+func crypto/subtle.XORBytes CAPABILITY_SAFE
+func crypto/tls.init CAPABILITY_SAFE
+func (*crypto/tls.Conn).writeRecordLocked CAPABILITY_SAFE
+func (*crypto/tls.certCache).active CAPABILITY_SAFE
+func (*crypto/tls.certCache).newCert CAPABILITY_SAFE
+func crypto/tls/fipsonly.init CAPABILITY_SAFE
+func crypto/x509.ParseCertificate CAPABILITY_SAFE
+func crypto/x509.init CAPABILITY_SAFE
+func crypto/x509.loadSystemRoots CAPABILITY_SAFE
+func (*crypto/x509.CertPool).AppendCertsFromPEM$1 CAPABILITY_SAFE
+
+func go/internal/srcimporter.setUsesCgo CAPABILITY_SAFE
+
+func internal/abi.FuncPCABI0 CAPABILITY_SAFE
+func internal/abi.FuncPCABIInternal CAPABILITY_SAFE
+
+func internal/godebug.init CAPABILITY_SAFE
+func (*internal/godebug.Setting).register CAPABILITY_SAFE
+func (*internal/godebug.Setting).Value CAPABILITY_SAFE
+
+func (*internal/bisect.atomicPointerDedup).CompareAndSwap CAPABILITY_SAFE
+func (*internal/bisect.atomicPointerDedup).Load CAPABILITY_SAFE
+
+func (*index/suffixarray.Index).lookupAll CAPABILITY_SAFE
+
+func log.Print CAPABILITY_SAFE
+func log.Printf CAPABILITY_SAFE
+func log.Println CAPABILITY_SAFE
+func log.SetFlags CAPABILITY_MODIFY_SYSTEM_STATE
+func log.SetOutput CAPABILITY_MODIFY_SYSTEM_STATE
+
+func maps.clone CAPABILITY_SAFE
+func maps.keys CAPABILITY_SAFE
+func maps.values CAPABILITY_SAFE
+
+func math/rand.fastrand64 CAPABILITY_SAFE
+
+func net.CIDRMask CAPABILITY_SAFE
+func net.Dial CAPABILITY_NETWORK
+func net.DialIP CAPABILITY_NETWORK
+func net.DialTCP CAPABILITY_NETWORK
+func net.DialTimeout CAPABILITY_NETWORK
+func net.DialUDP CAPABILITY_NETWORK
+func net.DialUnix CAPABILITY_NETWORK
+func net.FileConn CAPABILITY_NETWORK
+func net.FileListener CAPABILITY_NETWORK
+func net.FilePacketConn CAPABILITY_NETWORK
+func net.IPv4 CAPABILITY_SAFE
+func net.IPv4Mask CAPABILITY_SAFE
+func net.InterfaceAddrs CAPABILITY_READ_SYSTEM_STATE
+func net.InterfaceByIndex CAPABILITY_READ_SYSTEM_STATE
+func net.InterfaceByName CAPABILITY_READ_SYSTEM_STATE
+func net.Interfaces CAPABILITY_READ_SYSTEM_STATE
+func net.JoinHostPort CAPABILITY_SAFE
+func net.Listen CAPABILITY_NETWORK
+func net.ListenIP CAPABILITY_NETWORK
+func net.ListenMulticastUDP CAPABILITY_NETWORK
+func net.ListenPacket CAPABILITY_NETWORK
+func net.ListenTCP CAPABILITY_NETWORK
+func net.ListenUDP CAPABILITY_NETWORK
+func net.ListenUnix CAPABILITY_NETWORK
+func net.ListenUnixgram CAPABILITY_NETWORK
+func net.LookupAddr CAPABILITY_NETWORK
+func net.LookupCNAME CAPABILITY_NETWORK
+func net.LookupHost CAPABILITY_NETWORK
+func net.LookupIP CAPABILITY_NETWORK
+func net.LookupMX CAPABILITY_NETWORK
+func net.LookupNS CAPABILITY_NETWORK
+func net.LookupPort CAPABILITY_NETWORK
+func net.LookupSRV CAPABILITY_NETWORK
+func net.LookupTXT CAPABILITY_NETWORK
+func net.ParseCIDR CAPABILITY_SAFE
+func net.ParseIP CAPABILITY_SAFE
+func net.ParseMAC CAPABILITY_SAFE
+func net.Pipe CAPABILITY_SAFE
+func net.ResolveIPAddr CAPABILITY_NETWORK
+func net.ResolveTCPAddr CAPABILITY_NETWORK
+func net.ResolveUDPAddr CAPABILITY_NETWORK
+func net.ResolveUnixAddr CAPABILITY_NETWORK
+func net.SplitHostPort CAPABILITY_SAFE
+func net.init CAPABILITY_SAFE
+func (*net.AddrError).Error CAPABILITY_SAFE
+func (*net.DNSConfigError).Unwrap CAPABILITY_SAFE
+func (*net.DNSError).Error CAPABILITY_SAFE
+func (net.Flags).String CAPABILITY_SAFE
+func (net.HardwareAddr).String CAPABILITY_SAFE
+func (net.IP).DefaultMask CAPABILITY_SAFE
+func (net.IP).Equal CAPABILITY_SAFE
+func (net.IP).IsGlobalUnicast CAPABILITY_SAFE
+func (net.IP).IsInterfaceLocalMulticast CAPABILITY_SAFE
+func (net.IP).IsLinkLocalMulticast CAPABILITY_SAFE
+func (net.IP).IsLinkLocalUnicast CAPABILITY_SAFE
+func (net.IP).IsLoopback CAPABILITY_SAFE
+func (net.IP).IsMulticast CAPABILITY_SAFE
+func (net.IP).IsPrivate CAPABILITY_SAFE
+func (net.IP).IsUnspecified CAPABILITY_SAFE
+func (net.IP).MarshalText CAPABILITY_SAFE
+func (net.IP).Mask CAPABILITY_SAFE
+func (net.IP).String CAPABILITY_SAFE
+func (net.IP).To16 CAPABILITY_SAFE
+func (net.IP).To4 CAPABILITY_SAFE
+func (*net.IP).UnmarshalText CAPABILITY_SAFE
+func (*net.IPAddr).Network CAPABILITY_SAFE
+func (*net.IPAddr).String CAPABILITY_SAFE
+func (net.IPMask).Size CAPABILITY_SAFE
+func (net.IPMask).String CAPABILITY_SAFE
+func (*net.IPNet).Contains CAPABILITY_SAFE
+func (*net.IPNet).Network CAPABILITY_SAFE
+func (*net.IPNet).String CAPABILITY_SAFE
+func (*net.OpError).Error CAPABILITY_SAFE
+func (*net.OpError).Temporary CAPABILITY_SAFE
+func (*net.OpError).Timeout CAPABILITY_SAFE
+func (*net.OpError).Unwrap CAPABILITY_SAFE
+func (*net.ParseError).Error CAPABILITY_SAFE
+func (*net.TCPAddr).AddrPort CAPABILITY_SAFE
+func (*net.TCPAddr).Network CAPABILITY_SAFE
+func (*net.TCPAddr).String CAPABILITY_SAFE
+func (*net.UDPAddr).String CAPABILITY_SAFE
+func (*net.UnixAddr).String CAPABILITY_SAFE
+func (net.UnknownNetworkError).Error CAPABILITY_SAFE
+func (net.UnknownNetworkError).Temporary CAPABILITY_SAFE
+func (net.addrinfoErrno).Error CAPABILITY_SAFE
+func (net.canceledError).Error CAPABILITY_SAFE
+func (net.canceledError).Is CAPABILITY_SAFE
+func (*net.onlyValuesCtx).Value CAPABILITY_SAFE
+func (*net.timeoutError).Error CAPABILITY_SAFE
+func (*net.timeoutError).Is CAPABILITY_SAFE
+func (*net.timeoutError).Temporary CAPABILITY_SAFE
+
+func net/http.init CAPABILITY_SAFE
+func (*net/http.ProtocolError).Error CAPABILITY_SAFE
+func (*net/http.ProtocolError).Is CAPABILITY_SAFE
+func (net/http.nothingWrittenError).Unwrap CAPABILITY_SAFE
+
+func (net/netip.Addr).WithZone CAPABILITY_SAFE
+
+func os.Chdir CAPABILITY_MODIFY_SYSTEM_STATE
+func os.Chmod CAPABILITY_FILES
+func os.Chown CAPABILITY_FILES
+func os.Chtimes CAPABILITY_FILES
+func os.Clearenv CAPABILITY_MODIFY_SYSTEM_STATE
+func os.Create CAPABILITY_FILES
+func os.CreateTemp CAPABILITY_FILES
+func os.DirFS CAPABILITY_FILES
+func os.Environ CAPABILITY_READ_SYSTEM_STATE
+func os.Executable CAPABILITY_READ_SYSTEM_STATE
+func os.Exit CAPABILITY_SAFE
+func os.Expand CAPABILITY_SAFE
+func os.ExpandEnv CAPABILITY_READ_SYSTEM_STATE
+func os.Getegid CAPABILITY_READ_SYSTEM_STATE
+func os.Getenv CAPABILITY_READ_SYSTEM_STATE
+func os.Geteuid CAPABILITY_READ_SYSTEM_STATE
+func os.Getgid CAPABILITY_READ_SYSTEM_STATE
+func os.Getgroups CAPABILITY_READ_SYSTEM_STATE
+func os.Getpagesize CAPABILITY_READ_SYSTEM_STATE
+func os.Getpid CAPABILITY_READ_SYSTEM_STATE
+func os.Getppid CAPABILITY_READ_SYSTEM_STATE
+func os.Getuid CAPABILITY_READ_SYSTEM_STATE
+func os.Getwd CAPABILITY_READ_SYSTEM_STATE
+func os.Hostname CAPABILITY_READ_SYSTEM_STATE
+func os.IsExist CAPABILITY_SAFE
+func os.IsNotExist CAPABILITY_SAFE
+func os.IsPathSeparator CAPABILITY_SAFE
+func os.IsPermission CAPABILITY_SAFE
+func os.IsTimeout CAPABILITY_SAFE
+func os.Lchown CAPABILITY_FILES
+func os.Link CAPABILITY_FILES
+func os.LookupEnv CAPABILITY_READ_SYSTEM_STATE
+func os.Lstat CAPABILITY_FILES
+func os.Mkdir CAPABILITY_FILES
+func os.MkdirAll CAPABILITY_FILES
+func os.MkdirTemp CAPABILITY_FILES
+func os.NewFile CAPABILITY_FILES
+func os.NewSyscallError CAPABILITY_SAFE
+func os.Open CAPABILITY_FILES
+func os.OpenFile CAPABILITY_FILES
+func os.Pipe CAPABILITY_FILES
+func os.ReadDir CAPABILITY_FILES
+func os.ReadFile CAPABILITY_FILES
+func os.Readlink CAPABILITY_FILES
+func os.Remove CAPABILITY_FILES
+func os.RemoveAll CAPABILITY_FILES
+func os.Rename CAPABILITY_FILES
+func os.SameFile CAPABILITY_FILES
+func os.Setenv CAPABILITY_MODIFY_SYSTEM_STATE
+func os.Stat CAPABILITY_FILES
+func os.Symlink CAPABILITY_FILES
+func os.TempDir CAPABILITY_READ_SYSTEM_STATE
+func os.Truncate CAPABILITY_FILES
+func os.Unsetenv CAPABILITY_MODIFY_SYSTEM_STATE
+func os.UserCacheDir CAPABILITY_READ_SYSTEM_STATE
+func os.UserConfigDir CAPABILITY_READ_SYSTEM_STATE
+func os.UserHomeDir CAPABILITY_READ_SYSTEM_STATE
+func os.WriteFile CAPABILITY_FILES
+func os.init CAPABILITY_SAFE
+func os.init$1 CAPABILITY_SAFE
+func (*os.File).Chdir CAPABILITY_FILES
+func (*os.File).Chmod CAPABILITY_FILES
+func (*os.File).Chown CAPABILITY_FILES
+func (*os.File).Close CAPABILITY_FILES
+func (*os.File).Fd CAPABILITY_FILES
+func (*os.File).Name CAPABILITY_FILES
+func (*os.File).Read CAPABILITY_FILES
+func (*os.File).ReadAt CAPABILITY_FILES
+func (*os.File).ReadDir CAPABILITY_FILES
+func (*os.File).ReadFrom CAPABILITY_FILES
+func (*os.File).Readdir CAPABILITY_FILES
+func (*os.File).Readdirnames CAPABILITY_FILES
+func (*os.File).Seek CAPABILITY_FILES
+func (*os.File).SetDeadline CAPABILITY_FILES
+func (*os.File).SetReadDeadline CAPABILITY_FILES
+func (*os.File).SetWriteDeadline CAPABILITY_FILES
+func (*os.File).Stat CAPABILITY_FILES
+func (*os.File).Sync CAPABILITY_FILES
+func (*os.File).SyscallConn CAPABILITY_FILES
+func (*os.File).Truncate CAPABILITY_FILES
+func (*os.File).Write CAPABILITY_FILES
+func (*os.File).WriteAt CAPABILITY_FILES
+func (*os.File).WriteString CAPABILITY_FILES
+func (*os.LinkError).Error CAPABILITY_SAFE
+func (*os.LinkError).Unwrap CAPABILITY_SAFE
+func (*os.ProcessState).ExitCode CAPABILITY_SAFE
+func (*os.ProcessState).Exited CAPABILITY_SAFE
+func (*os.ProcessState).Pid CAPABILITY_SAFE
+func (*os.ProcessState).String CAPABILITY_SAFE
+func (*os.ProcessState).Success CAPABILITY_SAFE
+func (*os.ProcessState).Sys CAPABILITY_SAFE
+func (*os.ProcessState).SysUsage CAPABILITY_SAFE
+func (*os.ProcessState).SystemTime CAPABILITY_SAFE
+func (*os.ProcessState).UserTime CAPABILITY_SAFE
+func (*os.SyscallError).Error CAPABILITY_SAFE
+func (*os.SyscallError).Timeout CAPABILITY_SAFE
+func (*os.SyscallError).Unwrap CAPABILITY_SAFE
+func (*os.fileStat).IsDir CAPABILITY_FILES
+func (*os.fileStat).ModTime CAPABILITY_FILES
+func (*os.fileStat).Mode CAPABILITY_FILES
+func (*os.fileStat).Name CAPABILITY_FILES
+func (*os.fileStat).Size CAPABILITY_FILES
+func (*os.fileStat).Sys CAPABILITY_FILES
+func (*os.unixDirent).Name CAPABILITY_FILES
+
+func os/exec.LookPath CAPABILITY_FILES
+func os/exec.init CAPABILITY_SAFE
+func (*os/exec.Error).Error CAPABILITY_SAFE
+func (*os/exec.Error).Unwrap CAPABILITY_SAFE
+func (*os/exec.ExitError).Error CAPABILITY_SAFE
+func (os/exec.wrappedError).Error CAPABILITY_UNSPECIFIED
+func (os/exec.wrappedError).Unwrap CAPABILITY_SAFE
+
+func os/user.Current CAPABILITY_READ_SYSTEM_STATE
+func os/user.Lookup CAPABILITY_READ_SYSTEM_STATE
+func os/user.LookupGroup CAPABILITY_READ_SYSTEM_STATE
+func os/user.LookupGroupId CAPABILITY_READ_SYSTEM_STATE
+func os/user.LookupId CAPABILITY_READ_SYSTEM_STATE
+func os/user.init CAPABILITY_SAFE
+
+func plugin.Open CAPABILITY_EXEC
+
+func reflect.DeepEqual CAPABILITY_SAFE
+func reflect.Indirect CAPABILITY_SAFE
+func reflect.TypeOf CAPABILITY_SAFE
+func reflect.ValueOf CAPABILITY_SAFE
+func reflect.VisibleFields CAPABILITY_SAFE
+func reflect.init CAPABILITY_SAFE
+func (reflect.ChanDir).String CAPABILITY_SAFE
+func (reflect.Kind).String CAPABILITY_SAFE
+func (reflect.Method).IsExported CAPABILITY_SAFE
+func (reflect.StructField).IsExported CAPABILITY_SAFE
+func (reflect.StructTag).Get CAPABILITY_SAFE
+func (reflect.StructTag).Lookup CAPABILITY_SAFE
+
+# Type construction functions.
+func reflect.ArrayOf CAPABILITY_SAFE
+func reflect.ChanOf CAPABILITY_SAFE
+func reflect.FuncOf CAPABILITY_SAFE
+func reflect.MapOf CAPABILITY_SAFE
+func reflect.PointerTo CAPABILITY_SAFE
+func reflect.PtrTo CAPABILITY_SAFE
+func reflect.SliceOf CAPABILITY_SAFE
+func reflect.StructOf CAPABILITY_SAFE
+
+# Some reflect.Value methods that only do reads.
+func (reflect.Value).Addr CAPABILITY_SAFE
+func (reflect.Value).Bool CAPABILITY_SAFE
+func (reflect.Value).Bytes CAPABILITY_SAFE
+func (reflect.Value).CanAddr CAPABILITY_SAFE
+func (reflect.Value).CanComplex CAPABILITY_SAFE
+func (reflect.Value).CanConvert CAPABILITY_SAFE
+func (reflect.Value).CanFloat CAPABILITY_SAFE
+func (reflect.Value).CanInt CAPABILITY_SAFE
+func (reflect.Value).CanInterface CAPABILITY_SAFE
+func (reflect.Value).CanSet CAPABILITY_SAFE
+func (reflect.Value).CanUint CAPABILITY_SAFE
+func (reflect.Value).Cap CAPABILITY_SAFE
+func (reflect.Value).Complex CAPABILITY_SAFE
+func (reflect.Value).Elem CAPABILITY_SAFE
+func (reflect.Value).Field CAPABILITY_SAFE
+func (reflect.Value).FieldByIndex CAPABILITY_SAFE
+func (reflect.Value).FieldByIndexErr CAPABILITY_SAFE
+func (reflect.Value).FieldByName CAPABILITY_SAFE
+func (reflect.Value).Float CAPABILITY_SAFE
+func (reflect.Value).Index CAPABILITY_SAFE
+func (reflect.Value).Int CAPABILITY_SAFE
+func (reflect.Value).IsNil CAPABILITY_SAFE
+func (reflect.Value).IsValid CAPABILITY_SAFE
+func (reflect.Value).IsZero CAPABILITY_SAFE
+func (reflect.Value).Kind CAPABILITY_SAFE
+func (reflect.Value).Len CAPABILITY_SAFE
+func (reflect.Value).Method CAPABILITY_SAFE
+func (reflect.Value).MethodByName CAPABILITY_SAFE
+func (reflect.Value).NumField CAPABILITY_SAFE
+func (reflect.Value).NumMethod CAPABILITY_SAFE
+func (reflect.Value).OverflowComplex CAPABILITY_SAFE
+func (reflect.Value).OverflowFloat CAPABILITY_SAFE
+func (reflect.Value).OverflowInt CAPABILITY_SAFE
+func (reflect.Value).OverflowUint CAPABILITY_SAFE
+func (reflect.Value).Pointer CAPABILITY_SAFE
+func (reflect.Value).String CAPABILITY_SAFE
+func (reflect.Value).Type CAPABILITY_SAFE
+func (reflect.Value).Uint CAPABILITY_SAFE
+func (reflect.Value).UnsafeAddr CAPABILITY_SAFE
+
+# Some reflect.Value methods that write to plain data types.
+func (reflect.Value).SetBool CAPABILITY_SAFE
+func (reflect.Value).SetBytes CAPABILITY_SAFE
+func (reflect.Value).SetComplex CAPABILITY_SAFE
+func (reflect.Value).SetFloat CAPABILITY_SAFE
+func (reflect.Value).SetInt CAPABILITY_SAFE
+func (reflect.Value).SetString CAPABILITY_SAFE
+func (reflect.Value).SetUint CAPABILITY_SAFE
+func (*reflect.ValueError).Error CAPABILITY_SAFE
+
+# Implementations of reflect.Type methods.
+func (*reflect.interfaceType).Method CAPABILITY_SAFE
+func (*reflect.interfaceType).MethodByName CAPABILITY_SAFE
+func (*reflect.interfaceType).NumMethod CAPABILITY_SAFE
+func (*reflect.rtype).Align CAPABILITY_SAFE
+func (*reflect.rtype).AssignableTo CAPABILITY_SAFE
+func (*reflect.rtype).Bits CAPABILITY_SAFE
+func (*reflect.rtype).ChanDir CAPABILITY_SAFE
+func (*reflect.rtype).Comparable CAPABILITY_SAFE
+func (*reflect.rtype).ConvertibleTo CAPABILITY_SAFE
+func (*reflect.rtype).Elem CAPABILITY_SAFE
+func (*reflect.rtype).Field CAPABILITY_SAFE
+func (*reflect.rtype).FieldAlign CAPABILITY_SAFE
+func (*reflect.rtype).FieldByIndex CAPABILITY_SAFE
+func (*reflect.rtype).FieldByName CAPABILITY_SAFE
+func (*reflect.rtype).Implements CAPABILITY_SAFE
+func (*reflect.rtype).In CAPABILITY_SAFE
+func (*reflect.rtype).IsVariadic CAPABILITY_SAFE
+func (*reflect.rtype).Key CAPABILITY_SAFE
+func (*reflect.rtype).Kind CAPABILITY_SAFE
+func (*reflect.rtype).Len CAPABILITY_SAFE
+func (*reflect.rtype).Method CAPABILITY_SAFE
+func (*reflect.rtype).MethodByName CAPABILITY_SAFE
+func (*reflect.rtype).Name CAPABILITY_SAFE
+func (*reflect.rtype).NumField CAPABILITY_SAFE
+func (*reflect.rtype).NumIn CAPABILITY_SAFE
+func (*reflect.rtype).NumMethod CAPABILITY_SAFE
+func (*reflect.rtype).NumOut CAPABILITY_SAFE
+func (*reflect.rtype).Out CAPABILITY_SAFE
+func (*reflect.rtype).PkgPath CAPABILITY_SAFE
+func (*reflect.rtype).Size CAPABILITY_SAFE
+func (*reflect.rtype).String CAPABILITY_SAFE
+func (*reflect.structType).FieldByIndex CAPABILITY_SAFE
+func (*reflect.structType).FieldByName CAPABILITY_SAFE
+func (*reflect.structType).Field CAPABILITY_SAFE
+
+# We can mark the UnsafePointer method as Safe because we detect when
+# unsafe.Pointers are used in ways that could allow code to gain
+# interesting capabilities -- converting an unsafe.Pointer to a regular
+# pointer type, or calling a standard library function that uses an
+# unsafe.Pointer to write to memory (reflect.NewAt, runtime.SetCgoTraceback,
+# sync/atomic.{CompareAndSwapPointer,StorePointer,SwapPointer}).
+#
+# The UnsafePointer method can be used in benign ways, e.g. to test if two
+# func objects point to the same function.
+func (reflect.Value).UnsafePointer CAPABILITY_SAFE
+
+func regexp.newBitState CAPABILITY_SAFE
+func (*regexp.Regexp).get CAPABILITY_SAFE
+func regexp.newOnePassMachine CAPABILITY_SAFE
+
+func runtime.BlockProfile CAPABILITY_SAFE
+func runtime.Breakpoint CAPABILITY_RUNTIME
+func runtime.CPUProfile CAPABILITY_RUNTIME
+func runtime.Caller CAPABILITY_SAFE
+func runtime.Callers CAPABILITY_SAFE
+func runtime.CallersFrames CAPABILITY_SAFE
+func runtime.FuncForPC CAPABILITY_SAFE
+func runtime.GC CAPABILITY_SAFE
+func runtime.GOMAXPROCS CAPABILITY_SAFE
+func runtime.GOROOT CAPABILITY_READ_SYSTEM_STATE
+func runtime.Goexit CAPABILITY_RUNTIME
+func runtime.GoroutineProfile CAPABILITY_SAFE
+func runtime.Gosched CAPABILITY_SAFE
+func runtime.KeepAlive CAPABILITY_SAFE
+func runtime.LockOSThread CAPABILITY_SAFE
+func runtime.MemProfile CAPABILITY_SAFE
+func runtime.MutexProfile CAPABILITY_SAFE
+func runtime.NumCPU CAPABILITY_SAFE
+func runtime.NumCgoCall CAPABILITY_SAFE
+func runtime.NumGoroutine CAPABILITY_SAFE
+func runtime.ReadMemStats CAPABILITY_SAFE
+func runtime.ReadTrace CAPABILITY_SAFE
+func runtime.SetBlockProfileRate CAPABILITY_SAFE
+func runtime.SetCPUProfileRate CAPABILITY_SAFE
+func runtime.SetCgoTraceback CAPABILITY_RUNTIME
+func runtime.SetMutexProfileFraction CAPABILITY_SAFE
+func runtime.Stack CAPABILITY_SAFE
+func runtime.StartTrace CAPABILITY_SAFE
+func runtime.StopTrace CAPABILITY_SAFE
+func runtime.ThreadCreateProfile CAPABILITY_SAFE
+func runtime.UnlockOSThread CAPABILITY_RUNTIME
+func runtime.Version CAPABILITY_SAFE
+func runtime.init CAPABILITY_SAFE
+func (*runtime.BlockProfileRecord).Stack CAPABILITY_SAFE
+func (*runtime.Frames).Next CAPABILITY_SAFE
+func (*runtime.Func).Entry CAPABILITY_SAFE
+func (*runtime.Func).FileLine CAPABILITY_SAFE
+func (*runtime.Func).Name CAPABILITY_SAFE
+func (*runtime.MemProfileRecord).InUseBytes CAPABILITY_SAFE
+func (*runtime.MemProfileRecord).InUseObjects CAPABILITY_SAFE
+func (*runtime.MemProfileRecord).Stack CAPABILITY_SAFE
+func (*runtime.StackRecord).Stack CAPABILITY_SAFE
+func (*runtime.TypeAssertionError).Error CAPABILITY_SAFE
+func (*runtime.TypeAssertionError).RuntimeError CAPABILITY_SAFE
+func (runtime.boundsError).Error CAPABILITY_SAFE
+func (runtime.errorAddressString).Error CAPABILITY_SAFE
+func (runtime.errorString).Error CAPABILITY_SAFE
+func (runtime.plainError).Error CAPABILITY_SAFE
+func (runtime.plainError).RuntimeError CAPABILITY_SAFE
+func (runtime.waitReason).String CAPABILITY_SAFE
+func runtime/cgo.init CAPABILITY_SAFE
+func runtime/debug.FreeOSMemory CAPABILITY_SAFE
+func runtime/debug.PrintStack CAPABILITY_SAFE
+func runtime/debug.ReadBuildInfo CAPABILITY_READ_SYSTEM_STATE
+func runtime/debug.ReadGCStats CAPABILITY_SAFE
+func runtime/debug.SetGCPercent CAPABILITY_RUNTIME
+func runtime/debug.SetMaxStack CAPABILITY_RUNTIME
+func runtime/debug.SetMaxThreads CAPABILITY_RUNTIME
+func runtime/debug.SetPanicOnFault CAPABILITY_RUNTIME
+func runtime/debug.SetTraceback CAPABILITY_SAFE
+func runtime/debug.Stack CAPABILITY_SAFE
+func runtime/debug.WriteHeapDump CAPABILITY_FILES
+func runtime/debug.init CAPABILITY_SAFE
+func runtime/metrics.Read CAPABILITY_RUNTIME
+func runtime/trace.userLog CAPABILITY_SAFE
+func runtime/trace.userRegion CAPABILITY_SAFE
+func runtime/trace.userTaskCreate CAPABILITY_SAFE
+func runtime/trace.userTaskEnd CAPABILITY_SAFE
+
+# Our analysis does not include finalizers being called, so we warn about
+# calls to runtime.SetFinalizer instead.
+func runtime.SetFinalizer CAPABILITY_RUNTIME
+
+func sort.Float64s CAPABILITY_SAFE
+func sort.Float64sAreSorted CAPABILITY_SAFE
+func sort.Ints CAPABILITY_SAFE
+func sort.IntsAreSorted CAPABILITY_SAFE
+func sort.SearchFloat64s CAPABILITY_SAFE
+func sort.SearchInts CAPABILITY_SAFE
+func sort.SearchStrings CAPABILITY_SAFE
+func sort.Strings CAPABILITY_SAFE
+func sort.StringsAreSorted CAPABILITY_SAFE
+func (sort.Float64Slice).Search CAPABILITY_SAFE
+func (sort.Float64Slice).Sort CAPABILITY_SAFE
+func (sort.FloatSlice).Search CAPABILITY_SAFE
+func (sort.FloatSlice).Sort CAPABILITY_SAFE
+func (sort.IntSlice).Search CAPABILITY_SAFE
+func (sort.IntSlice).Sort CAPABILITY_SAFE
+func (sort.StringSlice).Search CAPABILITY_SAFE
+func (sort.StringSlice).Sort CAPABILITY_SAFE
+
+func strings.Clone CAPABILITY_SAFE
+func strings.Compare CAPABILITY_SAFE
+func strings.Contains CAPABILITY_SAFE
+func strings.ContainsAny CAPABILITY_SAFE
+func strings.ContainsRune CAPABILITY_SAFE
+func strings.Count CAPABILITY_SAFE
+func strings.Cut CAPABILITY_SAFE
+func strings.EqualFold CAPABILITY_SAFE
+func strings.Fields CAPABILITY_SAFE
+func strings.HasPrefix CAPABILITY_SAFE
+func strings.HasSuffix CAPABILITY_SAFE
+func strings.Index CAPABILITY_SAFE
+func strings.IndexAny CAPABILITY_SAFE
+func strings.IndexByte CAPABILITY_SAFE
+func strings.IndexRune CAPABILITY_SAFE
+func strings.Join CAPABILITY_SAFE
+func strings.LastIndex CAPABILITY_SAFE
+func strings.LastIndexAny CAPABILITY_SAFE
+func strings.LastIndexByte CAPABILITY_SAFE
+func strings.Repeat CAPABILITY_SAFE
+func strings.Replace CAPABILITY_SAFE
+func strings.ReplaceAll CAPABILITY_SAFE
+func strings.Split CAPABILITY_SAFE
+func strings.SplitAfter CAPABILITY_SAFE
+func strings.SplitAfterN CAPABILITY_SAFE
+func strings.SplitN CAPABILITY_SAFE
+func strings.Title CAPABILITY_SAFE
+func strings.ToLower CAPABILITY_SAFE
+func strings.ToLowerSpecial CAPABILITY_SAFE
+func strings.ToTitle CAPABILITY_SAFE
+func strings.ToTitleSpecial CAPABILITY_SAFE
+func strings.ToUpper CAPABILITY_SAFE
+func strings.ToUpperSpecial CAPABILITY_SAFE
+func strings.ToValidUTF8 CAPABILITY_SAFE
+func strings.Trim CAPABILITY_SAFE
+func strings.TrimLeft CAPABILITY_SAFE
+func strings.TrimPrefix CAPABILITY_SAFE
+func strings.TrimRight CAPABILITY_SAFE
+func strings.TrimSpace CAPABILITY_SAFE
+func strings.TrimSuffix CAPABILITY_SAFE
+
+func sync.fastrandn CAPABILITY_SAFE
+func sync.init CAPABILITY_SAFE
+func sync.runtime_Semacquire CAPABILITY_SAFE
+func sync.runtime_SemacquireMutex CAPABILITY_SAFE
+func sync.runtime_Semrelease CAPABILITY_SAFE
+func sync.runtime_notifyListAdd CAPABILITY_SAFE
+func sync.runtime_notifyListNotifyAll CAPABILITY_SAFE
+func sync.runtime_notifyListNotifyOne CAPABILITY_SAFE
+func sync.runtime_notifyListWait CAPABILITY_SAFE
+func (*sync.Map).Delete CAPABILITY_SAFE
+func (*sync.Map).Load CAPABILITY_SAFE
+func (*sync.Map).LoadAndDelete CAPABILITY_SAFE
+func (*sync.Map).LoadOrStore CAPABILITY_SAFE
+func (*sync.Map).Store CAPABILITY_SAFE
+func (*sync.Mutex).Lock CAPABILITY_SAFE
+func (*sync.Mutex).TryLock CAPABILITY_SAFE
+func (*sync.Mutex).Unlock CAPABILITY_SAFE
+func (*sync.Pool).Put CAPABILITY_SAFE
+func (*sync.RWMutex).Lock CAPABILITY_SAFE
+func (*sync.RWMutex).RLock CAPABILITY_SAFE
+func (*sync.RWMutex).RLocker CAPABILITY_SAFE
+func (*sync.RWMutex).RUnlock CAPABILITY_SAFE
+func (*sync.RWMutex).TryLock CAPABILITY_SAFE
+func (*sync.RWMutex).TryRLock CAPABILITY_SAFE
+func (*sync.RWMutex).Unlock CAPABILITY_SAFE
+
+func sync/atomic.CompareAndSwapPointer CAPABILITY_UNSAFE_POINTER
+func sync/atomic.StorePointer CAPABILITY_UNSAFE_POINTER
+func sync/atomic.SwapPointer CAPABILITY_UNSAFE_POINTER
+
+func syscall.init CAPABILITY_SAFE
+func (*syscall.DLLError).Error CAPABILITY_SAFE
+func (*syscall.DLLError).Unwrap CAPABILITY_SAFE
+func (syscall.Errno).Error CAPABILITY_SAFE
+func (syscall.Errno).Is CAPABILITY_SAFE
+func (syscall.Errno).Temporary CAPABILITY_SAFE
+func (syscall.Errno).Timeout CAPABILITY_SAFE
+func (syscall.WaitStatus).ExitStatus CAPABILITY_SAFE
+
+func text/template.builtinFuncs CAPABILITY_SAFE
+
+func unsafe.init CAPABILITY_SAFE
+
+func (*golang.org/x/crypto/chacha20poly1305.chacha20poly1305).Seal CAPABILITY_SAFE
+func (*vendor/golang.org/x/crypto/chacha20poly1305.chacha20poly1305).Seal CAPABILITY_SAFE
+func (*vendor/golang.org/x/crypto/cryptobyte.String).ReadASN1Integer CAPABILITY_SAFE
+func (*vendor/golang.org/x/crypto/cryptobyte.String).ReadOptionalASN1Integer CAPABILITY_SAFE
+func vendor/golang.org/x/sys/cpu.init CAPABILITY_SAFE
+
+func golang.org/x/crypto/sha3.copyOutUnaligned CAPABILITY_SAFE
+func golang.org/x/crypto/sha3.keccakF1600 CAPABILITY_SAFE
+func golang.org/x/crypto/sha3.xorInUnaligned CAPABILITY_SAFE
+
+# Int.Rand uses an arbitrary random-number generator passed in a
+# parameter, so it can reach code outside math/big.  We classify
+# Int.Rand as unspecified here so that we can declare the rest of the
+# package safe in packageCategory.
+func (*math/big.Int).Rand CAPABILITY_UNSPECIFIED
+func (math/big.nat).random CAPABILITY_UNSPECIFIED
+
+
+# In our current analysis, any call to any of the functions below are
+# considered to be able to call any function provided at other callsites.
+# For example, any call to sort.Sort could call the comparison function
+# from any other call to sort.Sort.  So we limit this behavior by giving
+# these functions the Unanalyzed capability.
+unanalyzed (*bufio.Reader).Read
+unanalyzed (*bufio.Reader).ReadByte
+unanalyzed (*bufio.Reader).ReadLine
+unanalyzed (*bufio.Reader).ReadRune
+unanalyzed (*bufio.Reader).ReadSlice
+unanalyzed (*bufio.Reader).ReadString
+unanalyzed (*bufio.Reader).UnreadByte
+unanalyzed (*bufio.Writer).Flush
+unanalyzed (*bufio.Writer).Reset
+unanalyzed (*bufio.Writer).Write
+unanalyzed (*bufio.Writer).WriteByte
+unanalyzed (*bufio.Writer).WriteRune
+unanalyzed bufio.Reader
+unanalyzed bufio.Writer
+unanalyzed (*bytes.Buffer).ReadFrom
+unanalyzed errors.As
+unanalyzed errors.Is
+unanalyzed errors.Unwrap
+unanalyzed io.Copy
+unanalyzed io.CopyBuffer
+unanalyzed io.CopyN
+unanalyzed io.ReadAll
+unanalyzed io.ReadAtLeast
+unanalyzed io.ReadFull
+unanalyzed io.WriteString
+unanalyzed (*io.LimitedReader).Read
+unanalyzed (*log.Logger).Output
+unanalyzed (*log.Logger).Printf
+unanalyzed sort.Find
+unanalyzed sort.IsSorted
+unanalyzed sort.Reverse
+unanalyzed sort.Search
+unanalyzed sort.Slice
+unanalyzed sort.SliceIsSorted
+unanalyzed sort.SliceStable
+unanalyzed sort.Sort
+unanalyzed sort.Stable
+unanalyzed (*sync.Once).Do
+unanalyzed (*sync.Pool).Get
+
+# The following entries provide default categorizations for functions that are
+# not yet in functionCategory.
+
+# fmt, testing and time have interesting descendants, but we have declared
+# these packages safe to call directly.
+package fmt CAPABILITY_SAFE
+package crypto/aes CAPABILITY_SAFE
+package crypto/internal/boring/bcache CAPABILITY_SAFE
+package crypto/internal/bigmod CAPABILITY_SAFE
+package crypto/internal/boring/sig CAPABILITY_SAFE
+package crypto/internal/edwards25519/field CAPABILITY_SAFE
+package crypto/internal/nistec CAPABILITY_SAFE
+package crypto/md5 CAPABILITY_SAFE
+package crypto/sha1 CAPABILITY_SAFE
+package crypto/sha256 CAPABILITY_SAFE
+package crypto/sha512 CAPABILITY_SAFE
+package crypto/subtle CAPABILITY_SAFE
+package debug/dwarf CAPABILITY_SAFE
+package debug/gosym CAPABILITY_SAFE
+package encoding/asn1 CAPABILITY_SAFE
+package hash/adler32 CAPABILITY_SAFE
+package hash/crc32 CAPABILITY_SAFE
+package hash/crc64 CAPABILITY_SAFE
+package hash/fnv CAPABILITY_SAFE
+package hash/maphash CAPABILITY_SAFE
+package internal/bytealg CAPABILITY_SAFE
+package internal/reflectlite CAPABILITY_SAFE
+package math CAPABILITY_SAFE
+package math/big CAPABILITY_SAFE
+package sync/atomic CAPABILITY_SAFE
+package testing CAPABILITY_SAFE
+package time CAPABILITY_SAFE
+package time/tzdata CAPABILITY_SAFE
+package vendor/golang.org/x/crypto/chacha20poly1305 CAPABILITY_SAFE
+package vendor/golang.org/x/crypto/internal/poly1305 CAPABILITY_SAFE
+package vendor/golang.org/x/sys/cpu CAPABILITY_SAFE
+
+package internal/syscall/execenv CAPABILITY_READ_SYSTEM_STATE
+package internal/syscall/unix CAPABILITY_SYSTEM_CALLS
+package internal/syscall/windows CAPABILITY_SYSTEM_CALLS
+package internal/syscall/windows/registry CAPABILITY_SYSTEM_CALLS
+package os CAPABILITY_OPERATING_SYSTEM
+package os/exec CAPABILITY_EXEC
+package os/signal CAPABILITY_MODIFY_SYSTEM_STATE
+package os/user CAPABILITY_READ_SYSTEM_STATE
+package reflect CAPABILITY_REFLECT
+package runtime CAPABILITY_RUNTIME
+package runtime/cgo CAPABILITY_RUNTIME
+package runtime/debug CAPABILITY_RUNTIME
+package runtime/internal/syscall CAPABILITY_SYSTEM_CALLS
+package runtime/pprof CAPABILITY_RUNTIME
+package syscall CAPABILITY_SYSTEM_CALLS
+package net CAPABILITY_NETWORK
+package net/http CAPABILITY_NETWORK
+package unsafe CAPABILITY_ARBITRARY_EXECUTION
+package golang.org/x/sys/unix CAPABILITY_SYSTEM_CALLS
+
+# The ignore_edge directive causes the Capslock analyzer to disregard a
+# particular function->function edge in the call graph.
+ignore_edge (*encoding/gob.Encoder).encodeInterface (*sync.Pool).Get
+ignore_edge (*vendor/golang.org/x/net/http2/hpack.Decoder).decodeString (*sync.Pool).Get
+ignore_edge (*vendor/golang.org/x/net/http2/hpack.Decoder).readString (*sync.Pool).Get
+ignore_edge (database/sql/driver.defaultConverter).ConvertValue (reflect.Value).Interface
+ignore_edge (io.discard).ReadFrom (*sync.Pool).Get
+ignore_edge (mime.WordEncoder).bEncode io.WriteString
+ignore_edge archive/zip.newFlateReader (*sync.Pool).Get
+ignore_edge archive/zip.newFlateWriter (*sync.Pool).Get
+ignore_edge crypto/tls.signedMessage io.WriteString
+ignore_edge database/sql.convertAssignRows (reflect.Value).Convert
+ignore_edge database/sql.convertAssignRows (reflect.Value).Interface
+ignore_edge database/sql.convertAssignRows (reflect.Value).Set
+ignore_edge database/sql.convertAssignRows reflect.New
+ignore_edge database/sql.convertAssignRows reflect.Zero
+ignore_edge encoding/json.newEncodeState (*sync.Pool).Get
+ignore_edge encoding/json.newScanner (*sync.Pool).Get
+ignore_edge go/printer.newPrinter (*sync.Pool).Get
+ignore_edge internal/coverage/encodemeta.NewCoverageMetaDataBuilder io.WriteString
+ignore_edge internal/coverage/encodemeta.hashFuncDesc io.WriteString
+ignore_edge internal/poll.getPipe (*sync.Pool).Get
+ignore_edge net/http/httputil.DumpRequest io.WriteString
+ignore_edge vendor/golang.org/x/net/http2/hpack.HuffmanDecode (*sync.Pool).Get
+
+# cgo_suffix defines function name suffixes that are automatically generated
+# by cgo. These are used to identify their presence as Capslock cannot analyze
+# native code.
+cgo_suffix _Cfunc_CBytes
+cgo_suffix _Cfunc_CString
+cgo_suffix _Cfunc_GoBytes
+cgo_suffix _Cfunc_GoStringN
+cgo_suffix _Cgo_use
+cgo_suffix _cgoCheckPointer
+cgo_suffix _cgoCheckResult
+cgo_suffix _cgo_runtime_cgocall
+cgo_suffix _cgo_runtime_gobytes
+cgo_suffix _cgo_runtime_gostring
+cgo_suffix _cgo_runtime_gostringn
+cgo_suffix _Cfunc_GoString

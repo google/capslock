@@ -1,0 +1,9 @@
+Capslock is an experimental tool for static analysis of Go packages. Share feedback and file bugs at github.com/google/capslock.
+For additional debugging signals, use verbose mode with -output=v
+To get machine-readable full analysis output, use -output=json
+
+Analyzed packages:{{range $val := .ModuleInfo}}
+{{$val.Path}} {{$val.Version}}{{end}}
+{{if .CapabilityCounts}}{{range $p, $index := .CapabilityCounts}}
+{{$p}}: {{$index}} references{{end}}
+{{else}}Capslock found no capabilities in this package.{{end}}
