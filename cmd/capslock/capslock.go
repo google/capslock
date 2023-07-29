@@ -14,7 +14,7 @@ import (
 	"log"
 	"strings"
 
-	"capslock/analyzer"
+	"github.com/google/capslock/analyzer"
 )
 
 var (

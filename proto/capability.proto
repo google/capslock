@@ -8,7 +8,7 @@ syntax = "proto2";
 
 package capslock.proto;
 
-option go_package = "capslock/proto";
+option go_package = "github.com/google/capslock/proto";
 
 message CapabilityInfo {
   // The name of the package.

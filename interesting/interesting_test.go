@@ -9,7 +9,7 @@ package interesting
 import (
 	"testing"
 
-	cpb "capslock/proto"
+	cpb "github.com/google/capslock/proto"
 )
 
 func TestInteresting(t *testing.T) {

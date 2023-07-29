@@ -12,14 +12,13 @@ import (
 	"go/types"
 	"strings"
 
+	cpb "github.com/google/capslock/proto"
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/callgraph/cha"
 	"golang.org/x/tools/go/callgraph/vta"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
 	"golang.org/x/tools/go/ssa/ssautil"
-
-	cpb "capslock/proto"
 )
 
 type bfsState struct {

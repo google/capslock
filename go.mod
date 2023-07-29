@@ -1,4 +1,4 @@
-module capslock
+module github.com/google/capslock
 
 go 1.20
 

@@ -10,14 +10,13 @@ import (
 	"os"
 	"testing"
 
-	"capslock/interesting"
+	"github.com/google/capslock/interesting"
+	cpb "github.com/google/capslock/proto"
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/tools/go/analysis/analysistest"
 	"golang.org/x/tools/go/packages"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
-
-	cpb "capslock/proto"
 )
 
 var filemap = map[string]string{"testlib/foo.go": `package testlib

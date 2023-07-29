@@ -7,8 +7,6 @@
 package analyzer
 
 import (
-	"capslock/interesting"
-	cpb "capslock/proto"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -17,6 +15,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/capslock/interesting"
+	cpb "github.com/google/capslock/proto"
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"

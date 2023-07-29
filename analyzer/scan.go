@@ -18,9 +18,8 @@ import (
 	"strings"
 	"text/template"
 
-	cpb "capslock/proto"
-
-	"capslock/interesting"
+	"github.com/google/capslock/interesting"
+	cpb "github.com/google/capslock/proto"
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/packages"
 	"google.golang.org/protobuf/encoding/protojson"

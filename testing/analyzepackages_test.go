@@ -14,8 +14,8 @@ import (
 	"regexp"
 	"testing"
 
+	cpb "github.com/google/capslock/proto"
 	"google.golang.org/protobuf/encoding/protojson"
-	cpb "capslock/proto"
 )
 
 type expectedPath struct {

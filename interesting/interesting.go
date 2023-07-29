@@ -15,7 +15,7 @@ import (
 	"io"
 	"strings"
 
-	cpb "capslock/proto"
+	cpb "github.com/google/capslock/proto"
 )
 
 //go:embed interesting.cm

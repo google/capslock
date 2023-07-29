@@ -8,14 +8,15 @@ package analyzer
 
 import (
 	"go/types"
-	"golang.org/x/tools/go/packages"
-	"google.golang.org/protobuf/proto"
-	cpb "capslock/proto"
 	"log"
 	"os"
 	"path"
 	"sort"
 	"sync"
+
+	cpb "github.com/google/capslock/proto"
+	"golang.org/x/tools/go/packages"
+	"google.golang.org/protobuf/proto"
 )
 
 var (

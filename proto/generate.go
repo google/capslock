@@ -10,4 +10,4 @@ package proto
 // the .proto file as the source.  After any edits to the .proto file, run
 // "go generate" to regenerate the .pb.go file.
 
-//go:generate protoc --go_out=. --go_opt=module=capslock/proto capability.proto
+//go:generate protoc --go_out=. --go_opt=module=github.com/google/capslock/proto capability.proto

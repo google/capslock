@@ -14,7 +14,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"capslock/testpkgs/callnet"
+	"github.com/google/capslock/testpkgs/callnet"
 )
 
 // ValueSetFunc uses (reflect.Value).Set to change a func variable

@@ -8,7 +8,7 @@
 package importname
 
 import (
-	"capslock/testpkgs/importname/sort"
+	"github.com/google/capslock/testpkgs/importname/sort"
 )
 
 type foo struct{}

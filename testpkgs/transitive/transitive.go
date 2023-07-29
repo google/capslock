@@ -17,16 +17,16 @@ import (
 	"strings"
 	"sync"
 
-	"capslock/testpkgs/callnet"
-	"capslock/testpkgs/callos"
-	"capslock/testpkgs/callutf8"
-	"capslock/testpkgs/indirectcalls"
-	_ "capslock/testpkgs/initfn" // for testing
-	"capslock/testpkgs/useasm"
-	"capslock/testpkgs/usecgo"
-	"capslock/testpkgs/usegenerics"
-	"capslock/testpkgs/uselinkname"
-	"capslock/testpkgs/useunsafe"
+	"github.com/google/capslock/testpkgs/callnet"
+	"github.com/google/capslock/testpkgs/callos"
+	"github.com/google/capslock/testpkgs/callutf8"
+	"github.com/google/capslock/testpkgs/indirectcalls"
+	_ "github.com/google/capslock/testpkgs/initfn" // for testing
+	"github.com/google/capslock/testpkgs/useasm"
+	"github.com/google/capslock/testpkgs/usecgo"
+	"github.com/google/capslock/testpkgs/usegenerics"
+	"github.com/google/capslock/testpkgs/uselinkname"
+	"github.com/google/capslock/testpkgs/useunsafe"
 )
 
 // MultipleCapabilities transitively calls a function in os, and a cgo function.
