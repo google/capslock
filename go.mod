@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/google/go-cmp v0.5.8
-	golang.org/x/tools v0.11.0
+	golang.org/x/tools v0.11.1
 	google.golang.org/protobuf v1.31.0
 )
 
