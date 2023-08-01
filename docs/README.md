@@ -38,7 +38,7 @@ analyzer, with an example call path for each one demonstrating that capability.
 
 ## List of capabilities
 
-See [capabilities documentation](docs/capabilities.md) for a list of the capabilities the tool reports.
+See [capabilities documentation](capabilities.md) for a list of the capabilities the tool reports.
 
 ## Interpreting capability reports
 
