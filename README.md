@@ -17,7 +17,7 @@ Current security analysis focuses a lot on identifying vulnerabilities in
 packages -- an important goal given the rate of new CVEs being identified.
 To complement this analysis, we are alerting on the capabilities of packages,
 meaning that we are identifying what permissions the package has access to via
-it's transitive dependencies on standard library functions with privileged
+its transitive dependencies on standard library functions with privileged
 accesses.
 
 This has many potential applications, from identifying the purpose of packages
