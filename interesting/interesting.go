@@ -13,6 +13,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	cpb "github.com/google/capslock/proto"
@@ -31,16 +32,19 @@ type Classifier struct {
 	cgoSuffixes        []string
 }
 
-var internalMap, internalMapExcludingUnanalyzed = parseInternalMapOrDie()
+var internalMap = parseInternalMapOrDie()
 
-// parseCapabilityMap parses capability map data.
-func parseCapabilityMap(source string, r io.Reader) (*Classifier, error) {
-	ret := &Classifier{
+func newClassifier() *Classifier {
+	return &Classifier{
 		functionCategory:   map[string]cpb.Capability{},
 		unanalyzedCategory: map[string]cpb.Capability{},
 		packageCategory:    map[string]cpb.Capability{},
 		ignoredEdges:       map[[2]string]struct{}{},
 	}
+}
+
+func parseCapabilityMap(source string, r io.Reader) (*Classifier, error) {
+	ret := newClassifier()
 	scanner := bufio.NewScanner(r)
 	line := 0
 	for scanner.Scan() {
@@ -112,28 +116,81 @@ func parseCapabilityMap(source string, r io.Reader) (*Classifier, error) {
 }
 
 // parseInternalMapOrDie parses the internal embedded capability map data
-// or panic()s if this fails.  It returns the embedded classifier, and a copy
-// of the embedded classifier which ignores classifications of functions as
-// "unanalyzed".
-func parseInternalMapOrDie() (*Classifier, *Classifier) {
-	withUnanalyzed, err := parseCapabilityMap("internal", strings.NewReader(interestingData))
+// or panic()s if this fails.  It returns the embedded classifier.
+func parseInternalMapOrDie() *Classifier {
+	classifier, err := parseCapabilityMap("internal", strings.NewReader(interestingData))
 	if err != nil {
 		panic("internal error: " + err.Error())
 	}
-	if len(withUnanalyzed.functionCategory) == 0 {
+	if len(classifier.functionCategory) == 0 {
 		panic("internal error: no capabilities loaded")
 	}
-	withoutUnanalyzed := *withUnanalyzed
-	withoutUnanalyzed.unanalyzedCategory = nil
-	return withUnanalyzed, &withoutUnanalyzed
+	return classifier
 }
 
+// DefaultClassifier returns the default internal Classifier.
 func DefaultClassifier() *Classifier {
 	return internalMap
 }
 
-func DefaultClassifierExcludingUnanalyzed() *Classifier {
-	return internalMapExcludingUnanalyzed
+// ClassifierExcludingUnanalyzed returns a copy of the supplied Classifier
+// that is modified to never classify capabilities as CAPABILITY_UNANALYZED.
+func ClassifierExcludingUnanalyzed(classifier *Classifier) *Classifier {
+	withoutUnanalyzed := *classifier
+	withoutUnanalyzed.unanalyzedCategory = nil
+	return &withoutUnanalyzed
+}
+
+func mergeCapabilityMap(dst, s1, s2 map[string]cpb.Capability) {
+	for k, v := range s1 {
+		dst[k] = v
+	}
+	for k, v := range s2 {
+		dst[k] = v
+	}
+}
+
+// LoadClassifier returns a capability classifier loaded from the specified
+// io.Reader. The filename argument is used only for providing context to
+// error messages. The classifier will also include the default Caplock
+// classifications unless the excludeBuiltin is set.
+//
+// Refer to the interesting/interesting.cm file in the source code for an
+// example of the capability map format. Classifications loaded from a
+// caller-specified file always override builtin classifications.
+func LoadClassifier(source string, r io.Reader, excludeBuiltin bool) (*Classifier, error) {
+	userClassifier, err := parseCapabilityMap(source, r)
+	if err != nil {
+		return nil, err
+	}
+	if excludeBuiltin {
+		return userClassifier, nil
+	}
+	ret := newClassifier()
+	// Merge.
+	// TODO(djm): use `maps.Copy` once it graduates from x/exp.
+	mergeCapabilityMap(ret.functionCategory, internalMap.functionCategory, userClassifier.functionCategory)
+	mergeCapabilityMap(ret.unanalyzedCategory, internalMap.unanalyzedCategory, userClassifier.unanalyzedCategory)
+	mergeCapabilityMap(ret.packageCategory, internalMap.packageCategory, userClassifier.packageCategory)
+	for k, v := range internalMap.ignoredEdges {
+		ret.ignoredEdges[k] = v
+	}
+	for k, v := range userClassifier.ignoredEdges {
+		ret.ignoredEdges[k] = v
+	}
+	cgoSuffixes := map[string]bool{}
+	for _, v := range internalMap.cgoSuffixes {
+		cgoSuffixes[v] = true
+	}
+	for _, v := range userClassifier.cgoSuffixes {
+		cgoSuffixes[v] = true
+	}
+	// TODO(djm) use `maps.Keys` once it graduates from x/exp.
+	for k := range cgoSuffixes {
+		ret.cgoSuffixes = append(ret.cgoSuffixes, k)
+	}
+	sort.Strings(ret.cgoSuffixes)
+	return ret, nil
 }
 
 // IncludeCall returns true if a call from one function to another should be

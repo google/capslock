@@ -27,10 +27,11 @@ import (
 // appropriate capability.
 // If excludedUnanalyzed is true, the UNANALYZED capability is never returned.
 func GetClassifier(excludeUnanalyzed bool) *interesting.Classifier {
+	classifier := interesting.DefaultClassifier()
 	if excludeUnanalyzed {
-		return interesting.DefaultClassifierExcludingUnanalyzed()
+		return interesting.ClassifierExcludingUnanalyzed(classifier)
 	}
-	return interesting.DefaultClassifier()
+	return classifier
 }
 
 // GetCapabilityInfo analyzes the packages in pkgs.  For each function in those
