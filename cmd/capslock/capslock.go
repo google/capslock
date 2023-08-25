@@ -12,18 +12,22 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/google/capslock/analyzer"
+	"github.com/google/capslock/interesting"
 )
 
 var (
-	packageList = flag.String("packages", "", "target patterns to be analysed; allows wildcarding")
-	output      = flag.String("output", "", "output mode to use; non-default options are json, m, v, graph, and compare")
-	noiseFlag   = flag.Bool("noisy", false, "include output on unanalyzed function calls (can be noisy)")
-	buildTags   = flag.String("buildtags", "", "command-separated list of build tags to use when loading packages")
-	goos        = flag.String("goos", "", "GOOS value to use when loading packages")
-	goarch      = flag.String("goarch", "", "GOARCH value to use when loading packages")
+	packageList    = flag.String("packages", "", "target patterns to be analysed; allows wildcarding")
+	output         = flag.String("output", "", "output mode to use; non-default options are json, m, v, graph, and compare")
+	noiseFlag      = flag.Bool("noisy", false, "include output on unanalyzed function calls (can be noisy)")
+	customMap      = flag.String("capability_map", "", "use a custom capability map file")
+	disableBuiltin = flag.Bool("disable_builtin", false, "when using a custom capability map, disable the builtin capability mappings")
+	buildTags      = flag.String("buildtags", "", "command-separated list of build tags to use when loading packages")
+	goos           = flag.String("goos", "", "GOOS value to use when loading packages")
+	goarch         = flag.String("goarch", "", "GOARCH value to use when loading packages")
 )
 
 func main() {
@@ -32,8 +36,26 @@ func main() {
 	if len(packageNames) == 0 {
 		log.Fatal("No packages provided")
 	}
-
-	classifier := analyzer.GetClassifier(*noiseFlag)
+	if *disableBuiltin && *customMap == "" {
+		log.Fatal("Error: --disable_builtin only makes sense with a --capability_map file specified")
+	}
+	var classifier *interesting.Classifier
+	if *customMap != "" {
+		f, err := os.Open(*customMap)
+		if err != nil {
+			log.Fatal(err)
+		}
+		classifier, err = interesting.LoadClassifier(*customMap, f, *disableBuiltin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if *noiseFlag {
+			classifier = interesting.ClassifierExcludingUnanalyzed(classifier)
+		}
+		log.Printf("Using custom capability map %q", *customMap)
+	} else {
+		classifier = analyzer.GetClassifier(*noiseFlag)
+	}
 
 	pkgs := analyzer.LoadPackages(packageNames,
 		analyzer.LoadConfig{
