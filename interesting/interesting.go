@@ -153,7 +153,7 @@ func mergeCapabilityMap(dst, s1, s2 map[string]cpb.Capability) {
 // LoadClassifier returns a capability classifier loaded from the specified
 // io.Reader. The filename argument is used only for providing context to
 // error messages. The classifier will also include the default Capslock
-// classifications unless the excludeBuiltin is set.
+// classifications unless the excludeBuiltin argument is set.
 //
 // Refer to the interesting/interesting.cm file in the source code for an
 // example of the capability map format. Classifications loaded from a
