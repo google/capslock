@@ -114,26 +114,23 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 				cm[cap.String()].count += 1
 			}
 			i := 0
-			var b strings.Builder
 			var n string
 			var incomingEdge *callgraph.Edge
 			isDirect := true
+			e := []*cpb.Function{}
 			for v != nil {
 				s := v.Func.String()
-                                fn := &cpb.Function{Name: proto.String(s)}
-		                      if position := callsitePosition(incomingEdge); position.IsValid() {
-                                       fn.Site = &cpb.Function_Site{
-                                               Filename: proto.String(path.Base(position.Filename)),
-                                               Line:     proto.Int64(int64(position.Line)),
-                                               Column:   proto.Int64(int64(position.Column)),
-                                       }
-                               }
-                               cm[cap.String()].example = append(cm[cap.String()].example, fn)
+				fn := &cpb.Function{Name: proto.String(s)}
+				if position := callsitePosition(incomingEdge); position.IsValid() {
+					fn.Site = &cpb.Function_Site{
+						Filename: proto.String(path.Base(position.Filename)),
+						Line:     proto.Int64(int64(position.Line)),
+						Column:   proto.Int64(int64(position.Column)),
+					}
+				}
+				e = append(e, fn)
 				if i == 0 {
 					n = v.Func.Package().Pkg.Path()
-					fmt.Fprintf(&b, "%s", s)
-				} else {
-					fmt.Fprintf(&b, " %s", s)
 				}
 				i++
 				if pName := packagePath(v.Func); n != pName && !isStdLib(pName) {
@@ -153,6 +150,11 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 				} else {
 					cm[cap.String()].transitive_count += 1
 				}
+			}
+			if _, ok := cm[cap.String()]; !ok {
+				cm[cap.String()] = &CapabilityCounter{example: e}
+			} else {
+				cm[cap.String()].example = e
 			}
 		}, classifier)
 	for _, counts := range cm {
