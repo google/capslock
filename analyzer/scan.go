@@ -18,6 +18,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/fatih/color"
 	"github.com/google/capslock/interesting"
 	cpb "github.com/google/capslock/proto"
 	"golang.org/x/tools/go/callgraph"
@@ -97,8 +98,48 @@ func (gb *graphBuilder) Done() {
 	gb.done = true
 }
 
+func templateFormat(args ...interface{}) string {
+	var format string
+	if len(args) != 0 {
+		format = args[0].(string)
+	}
+	var w strings.Builder
+	switch format {
+	case "":
+		// "{{format}}" without arguments resets format.
+		color.New(color.FgHiBlack).UnsetWriter(&w)
+	case "intro", "callpath", "callpath-site":
+		color.New(color.FgHiBlack).SetWriter(&w)
+	case "highlight":
+		color.New(color.FgCyan).SetWriter(&w)
+	case "heading":
+		color.New(color.FgHiWhite).SetWriter(&w)
+	case "nocap":
+		color.New(color.FgHiGreen).SetWriter(&w)
+	case "capability":
+		var capability string
+		if s, ok := args[1].(fmt.Stringer); ok {
+			capability = s.String()
+		} else {
+			capability, ok = args[1].(string)
+		}
+		switch capability {
+		case "CAPABILITY_SAFE":
+			color.New(color.FgHiGreen).SetWriter(&w)
+		case "CAPABILITY_ARBITRARY_EXECUTION", "CAPABILITY_CGO", "CAPABILITY_UNSAFE_POINTER", "CAPABILITY_EXEC":
+			color.New(color.FgHiRed).SetWriter(&w)
+		default:
+			color.New(color.FgHiYellow).SetWriter(&w)
+		}
+	}
+	return w.String()
+}
+
 func runAnalyzer(output string, pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
 	classifier *interesting.Classifier) error {
+	templateFuncMap := template.FuncMap{
+		"format": templateFormat,
+	}
 	if output == "json" || output == "j" {
 		cil := GetCapabilityInfo(pkgs, queriedPackages, classifier)
 		b, err := protojson.MarshalOptions{Multiline: true, Indent: "\t"}.Marshal(cil)
@@ -115,7 +156,7 @@ func runAnalyzer(output string, pkgs []*packages.Package, queriedPackages map[*t
 		return nil
 	} else if output == "v" || output == "verbose" {
 		cil := GetCapabilityStats(pkgs, queriedPackages, classifier)
-		ctm := template.Must(template.New("verbose.tmpl").ParseFS(staticContent, "static/verbose.tmpl"))
+		ctm := template.Must(template.New("verbose.tmpl").Funcs(templateFuncMap).ParseFS(staticContent, "static/verbose.tmpl"))
 		return ctm.Execute(os.Stdout, cil)
 	} else if output == "g" || output == "graph" {
 		w := bufio.NewWriterSize(os.Stdout, 1<<20)
@@ -143,7 +184,7 @@ func runAnalyzer(output string, pkgs []*packages.Package, queriedPackages map[*t
 		return w.Flush()
 	}
 	cil := GetCapabilityCounts(pkgs, queriedPackages, classifier)
-	ctm := template.Must(template.New("default.tmpl").ParseFS(staticContent, "static/default.tmpl"))
+	ctm := template.Must(template.New("default.tmpl").Funcs(templateFuncMap).ParseFS(staticContent, "static/default.tmpl"))
 	return ctm.Execute(os.Stdout, cil)
 }
 
