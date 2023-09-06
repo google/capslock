@@ -1,13 +1,11 @@
-Capslock is an experimental tool for static analysis of Go packages. Share feedback and file bugs at https://github.com/google/capslock.
-To get machine-readable full analysis output, use -output=json
+{{format "intro"}}Capslock is an experimental tool for static analysis of Go packages.
+Share feedback and file bugs at {{format "highlight"}}https://github.com/google/capslock.{{format}}
+{{format "intro"}}To get machine-readable full analysis output, use {{format "highlight"}}-output=json{{format}}
 
-Analyzed packages:{{range $val := .ModuleInfo}}
-{{$val.Path}} {{$val.Version}}{{end}}
-{{if .CapabilityStats}}{{range $index, $p := .CapabilityStats}}
-Capability: {{$p.Capability}}
-{{$p.Count}} references ({{$p.DirectCount}} direct, {{$p.TransitiveCount}} transitive)
+{{if .ModuleInfo}}{{format "heading"}}Analyzed packages:{{format}}
+{{range $val := .ModuleInfo}}  {{$val.Path}} {{$val.Version}}
+{{end}}{{end}}{{if .CapabilityStats}}{{range $index, $p := .CapabilityStats}}
+{{format "capability" $p.Capability}}{{$p.Capability}}{{format}}: {{$p.Count}} references ({{$p.DirectCount}} direct, {{$p.TransitiveCount}} transitive)
 Example callpath:
-    {{range $val := $p.ExampleCallpath}}{{$val.Name}}{{if $val.Site}}: {{$val.Site}}{{end}}
-    {{end}}
-{{end}}
-{{else}}Capslock found no capabilities in this package.{{end}}
+{{range $val := $p.ExampleCallpath}}  {{format "callpath-site"}}{{if $val.Site}}{{$val.Site.Filename}}:{{$val.Site.Line}}:{{$val.Site.Column}}:{{end}}{{format "callpath"}}{{$val.Name}}{{format}}
+{{end}}{{end}}{{else}}{{format "nocap"}}Capslock found no capabilities in this package.{{format}}{{end}}

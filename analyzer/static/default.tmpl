@@ -1,9 +1,10 @@
-Capslock is an experimental tool for static analysis of Go packages. Share feedback and file bugs at https://github.com/google/capslock.
-For additional debugging signals, use verbose mode with -output=v
-To get machine-readable full analysis output, use -output=json
+{{format "intro"}}Capslock is an experimental tool for static analysis of Go packages.
+Share feedback and file bugs at {{format "highlight"}}https://github.com/google/capslock.{{format}}
+{{format "intro"}}For additional debugging signals, use verbose mode with {{format "highlight"}}-output=verbose{{format}}
+{{format "intro"}}To get machine-readable full analysis output, use {{format "highlight"}}-output=json{{format}}
 
-Analyzed packages:{{range $val := .ModuleInfo}}
-{{$val.Path}} {{$val.Version}}{{end}}
-{{if .CapabilityCounts}}{{range $p, $index := .CapabilityCounts}}
-{{$p}}: {{$index}} references{{end}}
-{{else}}Capslock found no capabilities in this package.{{end}}
+{{if .ModuleInfo}}{{format "heading"}}Analyzed packages:{{format}}
+{{range $val := .ModuleInfo}}  {{$val.Path}} {{$val.Version}}
+{{end}}{{end}}{{if .CapabilityCounts}}{{range $p, $index := .CapabilityCounts}}
+{{format "capability" $p}}{{$p}}{{format}}: {{$index}} references{{end}}
+{{else}}{{format "nocap"}}Capslock found no capabilities in this package.{{format}}{{end}}
