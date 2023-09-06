@@ -4,8 +4,10 @@ To get machine-readable full analysis output, use -output=json
 Analyzed packages:{{range $val := .ModuleInfo}}
 {{$val.Path}} {{$val.Version}}{{end}}
 {{if .CapabilityStats}}{{range $index, $p := .CapabilityStats}}
-{{$p.Capability}}: {{$p.Count}} references
-{{$p.DirectCount}} direct, {{$p.TransitiveCount}} transitive
-Example callpath: {{$p.ExampleCallpath}}
+Capability: {{$p.Capability}}
+{{$p.Count}} references ({{$p.DirectCount}} direct, {{$p.TransitiveCount}} transitive)
+Example callpath:
+    {{range $val := $p.ExampleCallpath}}{{$val.Name}}{{if $val.Site}}: {{$val.Site}}{{end}}
+    {{end}}
 {{end}}
 {{else}}Capslock found no capabilities in this package.{{end}}

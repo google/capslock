@@ -75,7 +75,7 @@ message CapabilityStats {
   optional string description = 2;
   optional int64 direct_count = 3;
   optional int64 transitive_count = 4;
-  optional string example_callpath = 5;
+  repeated Function example_callpath = 5;
   optional int64 count = 6;
 }
 

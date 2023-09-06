@@ -95,7 +95,7 @@ type CapabilityCounter struct {
 	count            int64
 	direct_count     int64
 	transitive_count int64
-	example          string
+	example          []*cpb.Function
 }
 
 // GetCapabilityStats analyzes the packages in pkgs.  For each function in
@@ -116,9 +116,19 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 			i := 0
 			var b strings.Builder
 			var n string
+			var incomingEdge *callgraph.Edge
 			isDirect := true
 			for v != nil {
 				s := v.Func.String()
+                                fn := &cpb.Function{Name: proto.String(s)}
+		                      if position := callsitePosition(incomingEdge); position.IsValid() {
+                                       fn.Site = &cpb.Function_Site{
+                                               Filename: proto.String(path.Base(position.Filename)),
+                                               Line:     proto.Int64(int64(position.Line)),
+                                               Column:   proto.Int64(int64(position.Column)),
+                                       }
+                               }
+                               cm[cap.String()].example = append(cm[cap.String()].example, fn)
 				if i == 0 {
 					n = v.Func.Package().Pkg.Path()
 					fmt.Fprintf(&b, "%s", s)
@@ -129,7 +139,7 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 				if pName := packagePath(v.Func); n != pName && !isStdLib(pName) {
 					isDirect = false
 				}
-				v = nodes[v].next()
+				incomingEdge, v = nodes[v].edge, nodes[v].next()
 			}
 			if isDirect {
 				if _, ok := cm[cap.String()]; !ok {
@@ -144,11 +154,6 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 					cm[cap.String()].transitive_count += 1
 				}
 			}
-			if _, ok := cm[cap.String()]; !ok {
-				cm[cap.String()] = &CapabilityCounter{example: b.String()}
-			} else {
-				cm[cap.String()].example = b.String()
-			}
 		}, classifier)
 	for _, counts := range cm {
 		cs = append(cs, &cpb.CapabilityStats{
@@ -156,7 +161,7 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 			Count:           &counts.count,
 			DirectCount:     &counts.direct_count,
 			TransitiveCount: &counts.transitive_count,
-			ExampleCallpath: &counts.example})
+			ExampleCallpath: counts.example})
 	}
 	return &cpb.CapabilityStatList{
 		CapabilityStats: cs,
