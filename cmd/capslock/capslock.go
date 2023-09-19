@@ -33,9 +33,6 @@ var (
 func main() {
 	flag.Parse()
 	packageNames := strings.Split(*packageList, ",")
-	if len(packageNames) == 0 {
-		log.Fatal("No packages provided")
-	}
 	if *disableBuiltin && *customMap == "" {
 		log.Fatal("Error: --disable_builtin only makes sense with a --capability_map file specified")
 	}
