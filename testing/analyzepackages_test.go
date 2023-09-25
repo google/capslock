@@ -160,6 +160,8 @@ func TestExpectedOutput(t *testing.T) {
 		{Fn: []string{`useunsafe.Indirect2`, `useunsafe.init\$1`}},
 		{Fn: []string{`useunsafe.NestedFunctions\$1\$1\$1`}, Cap: `CAPABILITY_UNSAFE_POINTER`},
 		{Fn: []string{`useunsafe.ReturnFunction\$1`}, Cap: `CAPABILITY_UNSAFE_POINTER`},
+		{Fn: []string{`useunsafe.T\).M`}, Cap: "CAPABILITY_UNSAFE_POINTER"},
+		{Fn: []string{`useunsafe.init$`}, Cap: `CAPABILITY_UNSAFE_POINTER`},
 		{Fn: []string{`useunsafe.init\$1`}, Cap: `CAPABILITY_UNSAFE_POINTER`},
 	}
 	for _, path := range expectedPaths {
