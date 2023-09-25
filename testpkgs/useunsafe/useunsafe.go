@@ -34,6 +34,7 @@ var (
 	I  int
 	U  up = up(&I)
 	IP *int
+	Y  = *(*int)(U)
 	Z  = func() int {
 		return *(*int)(U)
 	}
@@ -82,4 +83,12 @@ func CallNestedFunctions() float32 {
 func Ok() uintptr {
 	var p unsafe.Pointer
 	return (uintptr)(p)
+}
+
+// T is a type with a method that uses an unsafe.Pointer.
+type T struct{}
+
+// M uses an unsafe pointer.
+func (t T) M() int {
+	return *(*int)(U)
 }

@@ -359,7 +359,7 @@ func getPackageNodesWithCapability(pkgs []*packages.Package,
 		log.Fatal("Some packages had errors. Aborting analysis.")
 	}
 	graph, ssaProg, allFunctions := buildGraph(pkgs, true)
-	unsafePointerFunctions := findUnsafePointerConversions(pkgs, ssaProg)
+	unsafePointerFunctions := findUnsafePointerConversions(pkgs, ssaProg, allFunctions)
 	ssaProg = nil // possibly save memory; we don't use ssaProg again
 	safe, nodesByCapability = getNodeCapabilities(graph, classifier)
 	extraNodesByCapability = make(nodesetPerCapability)
@@ -437,7 +437,7 @@ func getPackageNodesWithCapability(pkgs []*packages.Package,
 
 // findUnsafePointerConversions uses analysis of the syntax tree to find
 // functions which convert unsafe.Pointer values to another type.
-func findUnsafePointerConversions(pkgs []*packages.Package, ssaProg *ssa.Program) (unsafePointer map[*ssa.Function]struct{}) {
+func findUnsafePointerConversions(pkgs []*packages.Package, ssaProg *ssa.Program, allFunctions map[*ssa.Function]bool) (unsafePointer map[*ssa.Function]struct{}) {
 	// AST nodes corresponding to functions which convert unsafe.Pointer values.
 	unsafeFunctionNodes := make(map[ast.Node]struct{})
 	// Packages which contain variables that are initialized using
@@ -468,32 +468,21 @@ func findUnsafePointerConversions(pkgs []*packages.Package, ssaProg *ssa.Program
 	// Find the *ssa.Function pointers corresponding to the syntax nodes found
 	// above.
 	unsafePointerFunctions := make(map[*ssa.Function]struct{})
-	var processFunction func(f *ssa.Function)
-	processFunction = func(f *ssa.Function) {
+	for f := range allFunctions {
 		if _, ok := unsafeFunctionNodes[f.Syntax()]; ok {
 			unsafePointerFunctions[f] = struct{}{}
 		}
-		// Process child functions, e.g. function literals contained inside f.
-		for _, fn := range f.AnonFuncs {
-			processFunction(fn)
-		}
 	}
 	for _, pkg := range ssaProg.AllPackages() {
-		_, initUsesUnsafePointer := packagesWithUnsafePointerUseInInitialization[pkg.Pkg]
-		// pkg.Members contains all "top-level" functions; other functions are
-		// reached recursively through those.
-		for _, m := range pkg.Members {
-			if f, ok := m.(*ssa.Function); ok {
-				if initUsesUnsafePointer && f.Name() == "init" {
-					// This package had an unsafe.Pointer conversion in the initialization
-					// expression for a package-scoped variable.  f is the "init" function
-					// for the package, so we add it to unsafePointerFunctions.
-					// There will always be an init function for each package; if one
-					// didn't exist in the source, a synthetic one will have been
-					// created.
-					unsafePointerFunctions[f] = struct{}{}
-				}
-				processFunction(f)
+		if _, ok := packagesWithUnsafePointerUseInInitialization[pkg.Pkg]; ok {
+			// This package had an unsafe.Pointer conversion in the initialization
+			// expression for a package-scoped variable, so we add the package's
+			// "init" function to unsafePointerFunctions.
+			// There will always be an init function for each package; if one
+			// didn't exist in the source, a synthetic one will have been
+			// created.
+			if f := pkg.Func("init"); f != nil {
+				unsafePointerFunctions[f] = struct{}{}
 			}
 		}
 	}
