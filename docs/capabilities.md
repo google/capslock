@@ -7,7 +7,7 @@ library calls.
 not stable and are subject to change.** Feedback on the capabilities and
 how they are assigned is very welcome.
 
-The capabilities that Caplock reports are defined in the
+The capabilities that Capslock reports are defined in the
 `src/proto/capability.proto` file, specifically the `Capability`
 enum. The `src/interesting/interesting.go` file contains the mappings
 from library modules and calls to these capabilities.
@@ -29,7 +29,7 @@ on the use of particular types in the code itself, such as
 ## Capabilities
 
 The following section describe the purpose and intent of the
-capabilities that Caplock reports in analyzed code. These descriptions
+capabilities that Capslock reports in analyzed code. These descriptions
 are not meant to be exhaustive.
 
 ### CAPABILITY_UNSPECIFIED
