@@ -107,7 +107,7 @@ reassure ourselves that nothing concerning is present in our dependencies.
 
 There are two types of machine readable outputs produced by Capslock:
 
-*  JSON, by using -output=j or -output=j
+*  JSON, by using -output=j or -output=json
 *  A list of capability types, from -output=m
 
 

@@ -36,7 +36,7 @@ To learn more about the capabilities in your dependencies, install Capslock
 go install github.com/google/capslock/cmd/capslock@latest
 ```
 
-You can then invoke Caplock by running `capslock` from the path of the packages you want to analyze.
+You can then invoke Capslock by running `capslock` from the path of the packages you want to analyze.
 
 ## Caveats
 
