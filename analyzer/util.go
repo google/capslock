@@ -10,6 +10,8 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"os"
+	"path"
 	"strings"
 
 	cpb "github.com/google/capslock/proto"
@@ -450,4 +452,11 @@ func forEachPackageIncludingDependencies(pkgs []*packages.Package, fn func(*pack
 	for _, p := range pkgs {
 		visit(p)
 	}
+}
+
+func programName() string {
+	if a := os.Args; len(a) >= 1 {
+		return path.Base(a[0])
+	}
+	return "capslock"
 }
