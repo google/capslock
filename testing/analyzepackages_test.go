@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 	"testing"
 
 	cpb "github.com/google/capslock/proto"
@@ -223,6 +224,57 @@ func TestExpectedOutput(t *testing.T) {
 			t.Fatalf("TestExpectedOutput: internal error: %v", err)
 		} else if matches {
 			t.Errorf("TestExpectedOutput: expected not to see match for %v", path)
+		}
+	}
+	if t.Failed() {
+		t.Log(output.String())
+	}
+}
+
+func TestGraph(t *testing.T) {
+	// Run analyzepackages, get its stdout in output.
+	cmd := exec.Command(
+		"go", "run", "../cmd/capslock", "-packages=../testpkgs/useunsafe", "-output=graph")
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Errorf("exec.Command.Run: %v.  stdout:", err)
+		if _, err := os.Stderr.Write(output.Bytes()); err != nil {
+			t.Errorf("couldn't write analyzepackages' output to stderr: %v", err)
+		}
+		t.Fatalf("failed to run analyzepackages.")
+	}
+	// map from expected strings to the number of times each is seen in the output.
+	m := map[string]int{
+		`digraph {`: 0,
+		`"github.com/google/capslock/testpkgs/useunsafe.Bar" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
+		`"github.com/google/capslock/testpkgs/useunsafe.Baz" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
+		`"github.com/google/capslock/testpkgs/useunsafe.CallNestedFunctions" -> "github.com/google/capslock/testpkgs/useunsafe.NestedFunctions$1$1$1"`: 0,
+		`"github.com/google/capslock/testpkgs/useunsafe.Foo" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
+		`"github.com/google/capslock/testpkgs/useunsafe.Indirect2" -> "github.com/google/capslock/testpkgs/useunsafe.init$1"`:                          0,
+		`"github.com/google/capslock/testpkgs/useunsafe.Indirect" -> "github.com/google/capslock/testpkgs/useunsafe.ReturnFunction$1"`:                 0,
+		`"github.com/google/capslock/testpkgs/useunsafe.init$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                                        0,
+		`"github.com/google/capslock/testpkgs/useunsafe.init" -> "CAPABILITY_UNSAFE_POINTER"`:                                                          0,
+		`"github.com/google/capslock/testpkgs/useunsafe.NestedFunctions$1$1$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                         0,
+		`"github.com/google/capslock/testpkgs/useunsafe.ReturnFunction$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                              0,
+		`"(github.com/google/capslock/testpkgs/useunsafe.T).M" -> "CAPABILITY_UNSAFE_POINTER"`:                                                         0,
+		`}`: 0,
+	}
+	for _, s := range strings.Split(output.String(), "\n") {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		if _, ok := m[s]; !ok {
+			t.Errorf("TestGraph: saw unexpected output line %q", s)
+			continue
+		}
+		m[s]++
+	}
+	for s, c := range m {
+		if c != 1 {
+			t.Errorf("TestGraph: got output line %q %d times, want 1", s, c)
 		}
 	}
 	if t.Failed() {
