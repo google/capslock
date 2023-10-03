@@ -22,6 +22,7 @@ import (
 var (
 	packageList    = flag.String("packages", "", "target patterns to be analysed; allows wildcarding")
 	output         = flag.String("output", "", "output mode to use; non-default options are json, m, v, graph, and compare")
+	verbose        = flag.Int("v", 0, "verbosity level")
 	noiseFlag      = flag.Bool("noisy", false, "include output on unanalyzed function calls (can be noisy)")
 	customMap      = flag.String("capability_map", "", "use a custom capability map file")
 	disableBuiltin = flag.Bool("disable_builtin", false, "when using a custom capability map, disable the builtin capability mappings")
@@ -65,8 +66,10 @@ func main() {
 	}
 
 	queriedPackages := analyzer.GetQueriedPackages(pkgs)
-	for _, p := range pkgs {
-		log.Printf("Loaded package %q\n", p.Name)
+	if *verbose > 0 {
+		for _, p := range pkgs {
+			log.Printf("Loaded package %q\n", p.Name)
+		}
 	}
 	err := analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, classifier)
 	if err != nil {
