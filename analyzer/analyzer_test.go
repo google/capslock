@@ -44,7 +44,7 @@ func TestAnalysis(t *testing.T) {
 		t.Fatalf("packages.Load: %v", err)
 	}
 	queriedPackages := GetQueriedPackages(pkgs)
-	cil := GetCapabilityInfo(pkgs, queriedPackages, interesting.DefaultClassifier())
+	cil := GetCapabilityInfo(pkgs, queriedPackages, interesting.DefaultClassifier(), false)
 	expected := &cpb.CapabilityInfoList{
 		CapabilityInfo: []*cpb.CapabilityInfo{{
 			PackageName: proto.String("testlib"),

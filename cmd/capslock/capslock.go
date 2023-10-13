@@ -74,7 +74,7 @@ func main() {
 			log.Printf("Loaded package %q\n", p.Name)
 		}
 	}
-	err = analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, classifier)
+	err = analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, classifier, *disableBuiltin)
 	if err != nil {
 		log.Fatal(err)
 	}
