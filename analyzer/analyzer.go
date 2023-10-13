@@ -46,7 +46,7 @@ func GetClassifier(excludeUnanalyzed bool) *interesting.Classifier {
 // One CapabilityInfo is returned for every (function, capability) pair, with
 // one example path in the callgraph that demonstrates that capability.
 func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
-	classifier Classifier,
+	classifier Classifier, disableBuiltin bool,
 ) *cpb.CapabilityInfoList {
 	var caps []*cpb.CapabilityInfo
 	forEachPath(pkgs, queriedPackages,
@@ -89,7 +89,7 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 			c.CapabilityType = &ctype
 			c.DepPath = proto.String(b.String())
 			caps = append(caps, &c)
-		}, classifier)
+		}, classifier, disableBuiltin)
 	return &cpb.CapabilityInfoList{
 		CapabilityInfo: caps,
 		ModuleInfo:     collectModuleInfo(pkgs),
@@ -110,7 +110,7 @@ type CapabilityCounter struct {
 // function (see the "interesting" package), we give aggregated statistics
 // about the capability usage.
 func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
-	classifier Classifier,
+	classifier Classifier, disableBuiltin bool,
 ) *cpb.CapabilityStatList {
 	var cs []*cpb.CapabilityStats
 	cm := make(map[string]*CapabilityCounter)
@@ -164,7 +164,7 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 			} else {
 				cm[cap.String()].example = e
 			}
-		}, classifier)
+		}, classifier, disableBuiltin)
 	for _, counts := range cm {
 		cs = append(cs, &cpb.CapabilityStats{
 			Capability:      &counts.capability,
@@ -185,7 +185,7 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 // function (see the "interesting" package), we give an aggregate count of the
 // capability usage.
 func GetCapabilityCounts(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
-	classifier Classifier,
+	classifier Classifier, disableBuiltin bool,
 ) *cpb.CapabilityCountList {
 	cm := make(map[string]int64)
 	forEachPath(pkgs, queriedPackages,
@@ -195,7 +195,7 @@ func GetCapabilityCounts(pkgs []*packages.Package, queriedPackages map[*types.Pa
 			} else {
 				cm[cap.String()] += 1
 			}
-		}, classifier)
+		}, classifier, disableBuiltin)
 	return &cpb.CapabilityCountList{
 		CapabilityCounts: cm,
 		ModuleInfo:       collectModuleInfo(pkgs),
@@ -313,10 +313,11 @@ func searchForwardsFromQueriedFunctions(
 func CapabilityGraph(pkgs []*packages.Package,
 	queriedPackages map[*types.Package]struct{},
 	classifier Classifier,
+	disableBuiltin bool,
 	outputCall func(from, to *callgraph.Node),
 	outputCapability func(fn *callgraph.Node, c cpb.Capability),
 ) {
-	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, classifier)
+	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, classifier, disableBuiltin)
 	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
 	extraNodesByCapability = nil
 
@@ -353,7 +354,7 @@ func CapabilityGraph(pkgs []*packages.Package,
 // extraNodesByCapability contains nodes for functions that use unsafe pointers
 // or the reflect package in a way that we want to report to the user.
 func getPackageNodesWithCapability(pkgs []*packages.Package,
-	classifier Classifier,
+	classifier Classifier, disableBuiltin bool,
 ) (safe nodeset, nodesByCapability, extraNodesByCapability nodesetPerCapability) {
 	if packages.PrintErrors(pkgs) > 0 {
 		log.Fatal("Some packages had errors. Aborting analysis.")
@@ -362,10 +363,18 @@ func getPackageNodesWithCapability(pkgs []*packages.Package,
 	unsafePointerFunctions := findUnsafePointerConversions(pkgs, ssaProg, allFunctions)
 	ssaProg = nil // possibly save memory; we don't use ssaProg again
 	safe, nodesByCapability = getNodeCapabilities(graph, classifier)
-	extraNodesByCapability = make(nodesetPerCapability)
+
+	if !disableBuiltin {
+		extraNodesByCapability = getExtraNodesByCapability(graph, allFunctions, unsafePointerFunctions)
+	}
+	return safe, nodesByCapability, extraNodesByCapability
+}
+
+func getExtraNodesByCapability(graph *callgraph.Graph, allFunctions map[*ssa.Function]bool, unsafePointerFunctions map[*ssa.Function]struct{}) nodesetPerCapability {
 	// Find functions that copy reflect.Value objects in a way that could
 	// possibly cause a data race, and add their nodes to
 	// extraNodesByCapability[Capability_CAPABILITY_REFLECT].
+	extraNodesByCapability := make(nodesetPerCapability)
 	for f := range allFunctions {
 		// Find the function variables that do not escape.
 		locals := map[ssa.Value]struct{}{}
@@ -432,8 +441,9 @@ func getPackageNodesWithCapability(pkgs []*packages.Package,
 			extraNodesByCapability.add(cpb.Capability_CAPABILITY_ARBITRARY_EXECUTION, node)
 		}
 	}
-	return safe, nodesByCapability, extraNodesByCapability
+	return extraNodesByCapability
 }
+
 
 // findUnsafePointerConversions uses analysis of the syntax tree to find
 // functions which convert unsafe.Pointer values to another type.
@@ -568,9 +578,9 @@ func mergeCapabilities(nodesByCapability, extraNodesByCapability nodesetPerCapab
 //
 // forEachPath may modify pkgs.
 func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
-	fn func(cpb.Capability, map[*callgraph.Node]bfsState, *callgraph.Node), classifier Classifier,
+	fn func(cpb.Capability, map[*callgraph.Node]bfsState, *callgraph.Node), classifier Classifier, disableBuiltin bool,
 ) {
-	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, classifier)
+	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, classifier, disableBuiltin)
 	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
 	extraNodesByCapability = nil // we don't use extraNodesByCapability again.
 	for cap, nodes := range nodesByCapability {

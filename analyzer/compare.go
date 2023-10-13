@@ -18,7 +18,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func compare(baselineFilename string, pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, classifier *interesting.Classifier) error {
+func compare(baselineFilename string, pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, classifier *interesting.Classifier, disableBuiltin bool) error {
 	compareData, err := os.ReadFile(baselineFilename)
 	if err != nil {
 		return fmt.Errorf("Comparison file should include output from running `%s -output=j`. Error from reading comparison file: %v", programName(), err.Error())
@@ -28,7 +28,7 @@ func compare(baselineFilename string, pkgs []*packages.Package, queriedPackages 
 	if err != nil {
 		return fmt.Errorf("Comparison file should include output from running `%s -output=j`. Error from parsing comparison file: %v", programName(), err.Error())
 	}
-	cil := GetCapabilityInfo(pkgs, queriedPackages, classifier)
+	cil := GetCapabilityInfo(pkgs, queriedPackages, classifier, disableBuiltin)
 	diffCapabilityInfoLists(baseline, cil)
 	return nil
 }
