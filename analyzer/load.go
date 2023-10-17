@@ -8,7 +8,6 @@ package analyzer
 
 import (
 	"go/types"
-	"log"
 	"os"
 	"path"
 	"sort"
@@ -59,7 +58,7 @@ func GetQueriedPackages(pkgs []*packages.Package) map[*types.Package]struct{} {
 	return queriedPackages
 }
 
-func LoadPackages(packageNames []string, lcfg LoadConfig) []*packages.Package {
+func LoadPackages(packageNames []string, lcfg LoadConfig) ([]*packages.Package, error) {
 	cfg := &packages.Config{Mode: PackagesLoadModeNeeded}
 	if lcfg.BuildTags != "" {
 		cfg.BuildFlags = []string{"-tags=" + lcfg.BuildTags}
@@ -74,16 +73,7 @@ func LoadPackages(packageNames []string, lcfg LoadConfig) []*packages.Package {
 		}
 		cfg.Env = env
 	}
-	pkgs := []*packages.Package{}
-	for _, p := range packageNames {
-		pkg, err := packages.Load(cfg, p)
-		if err != nil {
-			log.Printf("Error loading packages %v: %v\n", p, err)
-			continue
-		}
-		pkgs = append(pkgs, pkg...)
-	}
-	return pkgs
+	return packages.Load(cfg, packageNames...)
 }
 
 func standardLibraryPackages() map[string]struct{} {
