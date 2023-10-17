@@ -55,12 +55,15 @@ func main() {
 		classifier = analyzer.GetClassifier(*noiseFlag)
 	}
 
-	pkgs := analyzer.LoadPackages(packageNames,
+	pkgs, err := analyzer.LoadPackages(packageNames,
 		analyzer.LoadConfig{
 			BuildTags: *buildTags,
 			GOOS:      *goos,
 			GOARCH:    *goarch,
 		})
+	if err != nil {
+		log.Fatalf("Error loading packages: %v", err)
+	}
 	if len(pkgs) == 0 {
 		log.Fatalf("No packages matching %v", packageNames)
 	}
@@ -71,7 +74,7 @@ func main() {
 			log.Printf("Loaded package %q\n", p.Name)
 		}
 	}
-	err := analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, classifier)
+	err = analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, classifier)
 	if err != nil {
 		log.Fatal(err)
 	}
