@@ -15,7 +15,6 @@ import (
 	"text/template"
 
 	"github.com/fatih/color"
-	"github.com/google/capslock/interesting"
 	"golang.org/x/tools/go/packages"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -24,12 +23,12 @@ import (
 var staticContent embed.FS
 
 func RunCapslock(args []string, output string, pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
-	classifier *interesting.Classifier, disableBuiltin bool) error {
+	config *Config) error {
 	if output == "compare" {
 		if len(args) != 1 {
 			return fmt.Errorf("Usage: %s -output=compare <filename>; provided %v args", programName(), len(args))
 		}
-		compare(args[0], pkgs, queriedPackages, classifier, disableBuiltin)
+		compare(args[0], pkgs, queriedPackages, config)
 	} else if len(args) >= 1 {
 		return fmt.Errorf("%s: unknown command", args)
 	}
@@ -37,7 +36,7 @@ func RunCapslock(args []string, output string, pkgs []*packages.Package, queried
 		"format": templateFormat,
 	}
 	if output == "json" || output == "j" {
-		cil := GetCapabilityInfo(pkgs, queriedPackages, classifier, disableBuiltin)
+		cil := GetCapabilityInfo(pkgs, queriedPackages, config)
 		b, err := protojson.MarshalOptions{Multiline: true, Indent: "\t"}.Marshal(cil)
 		if err != nil {
 			return fmt.Errorf("internal error: couldn't marshal protocol buffer: %s", err.Error())
@@ -45,19 +44,19 @@ func RunCapslock(args []string, output string, pkgs []*packages.Package, queried
 		fmt.Println(string(b))
 		return nil
 	} else if output == "m" || output == "machine" {
-		cil := GetCapabilityCounts(pkgs, queriedPackages, classifier, disableBuiltin)
+		cil := GetCapabilityCounts(pkgs, queriedPackages, config)
 		for c := range cil.CapabilityCounts {
 			fmt.Println(c)
 		}
 		return nil
 	} else if output == "v" || output == "verbose" {
-		cil := GetCapabilityStats(pkgs, queriedPackages, classifier, disableBuiltin)
+		cil := GetCapabilityStats(pkgs, queriedPackages, config)
 		ctm := template.Must(template.New("verbose.tmpl").Funcs(templateFuncMap).ParseFS(staticContent, "static/verbose.tmpl"))
 		return ctm.Execute(os.Stdout, cil)
 	} else if output == "g" || output == "graph" {
-		return graphOutput(pkgs, queriedPackages, classifier, disableBuiltin)
+		return graphOutput(pkgs, queriedPackages, config)
 	}
-	cil := GetCapabilityCounts(pkgs, queriedPackages, classifier, disableBuiltin)
+	cil := GetCapabilityCounts(pkgs, queriedPackages, config)
 	ctm := template.Must(template.New("default.tmpl").Funcs(templateFuncMap).ParseFS(staticContent, "static/default.tmpl"))
 	return ctm.Execute(os.Stdout, cil)
 }

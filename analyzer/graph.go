@@ -14,13 +14,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/capslock/interesting"
 	cpb "github.com/google/capslock/proto"
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/packages"
 )
 
-func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, classifier *interesting.Classifier, disableBuiltin bool) error {
+func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) error {
 	w := bufio.NewWriterSize(os.Stdout, 1<<20)
 	gb := newGraphBuilder(w, func(v interface{}) string {
 		switch v := v.(type) {
@@ -41,7 +40,7 @@ func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 	capabilityEdge := func(fn *callgraph.Node, c cpb.Capability) {
 		gb.Edge(fn, c)
 	}
-	CapabilityGraph(pkgs, queriedPackages, classifier, disableBuiltin, callEdge, capabilityEdge)
+	CapabilityGraph(pkgs, queriedPackages, config, callEdge, capabilityEdge)
 	gb.Done()
 	return w.Flush()
 }
