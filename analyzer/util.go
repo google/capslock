@@ -49,44 +49,81 @@ func (nc nodesetPerCapability) add(cap cpb.Capability, node *callgraph.Node) {
 	m[node] = struct{}{}
 }
 
-// byName is a slice of *callgraph.Node that can be sorted using sort.Sort.
+// byFunction is a slice of *callgraph.Node that can be sorted using sort.Sort.
 // The ordering is first by package name, then function name.
-type byName []*callgraph.Node
+type byFunction []*callgraph.Node
 
-func (s byName) Len() int { return len(s) }
-func (s byName) Less(i, j int) bool {
-	return nodeNameLess(s[i], s[j])
+func (s byFunction) Len() int { return len(s) }
+func (s byFunction) Less(i, j int) bool {
+	return nodeCompare(s[i], s[j]) < 0
 }
-func (s byName) Swap(i, j int) {
+func (s byFunction) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// byCallerName is a slice of *callgraph.Edge that can be sorted using
-// sort.Sort.  The ordering is first by caller's package name, then caller's
-// function name.
-type byCallerName []*callgraph.Edge
+// byCaller is a slice of *callgraph.Edge that can be sorted using
+// sort.Sort.  It sorts by calling function, then callsite position.
+type byCaller []*callgraph.Edge
 
-func (s byCallerName) Len() int { return len(s) }
-func (s byCallerName) Less(i, j int) bool {
-	return nodeNameLess(s[i].Caller, s[j].Caller)
+func (s byCaller) Len() int { return len(s) }
+func (s byCaller) Less(i, j int) bool {
+	if c := nodeCompare(s[i].Caller, s[j].Caller); c != 0 {
+		return c < 0
+	}
+	return positionLess(callsitePosition(s[i]), callsitePosition(s[j]))
 }
-func (s byCallerName) Swap(i, j int) {
+func (s byCaller) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func nodeNameLess(a, b *callgraph.Node) bool {
-	if b.Func == nil {
-		// We sort nils first, so a cannot be less than b.
+func nodeCompare(a, b *callgraph.Node) int {
+	return funcCompare(a.Func, b.Func)
+}
+
+// funcCompare orders by package path, then by whether the function is a
+// method, then by name.  Returns {-1, 0, +1} in the manner of strings.Compare.
+func funcCompare(a, b *ssa.Function) int {
+	// Put nils last.
+	if a == nil && b == nil {
+		return 0
+	} else if b == nil {
+		return -1
+	} else if a == nil {
+		return +1
+	}
+	if c := strings.Compare(packagePath(a), packagePath(b)); c != 0 {
+		return c
+	}
+	hasReceiver := func(f *ssa.Function) bool {
+		sig := f.Signature
+		return sig != nil && sig.Recv() != nil
+	}
+	if ar, br := hasReceiver(a), hasReceiver(b); !ar && br {
+		return -1
+	} else if ar && !br {
+		return +1
+	}
+	return strings.Compare(a.String(), b.String())
+}
+
+// positionLess implements an ordering on token.Position.
+// It orders first by filename, then by position in the file.
+// Invalid positions are sorted last.
+func positionLess(p1, p2 token.Position) bool {
+	if p2.Line == 0 {
+		// A token.Position with Line == 0 is invalid.
+		return p1.Line != 0
+	}
+	if p1.Line == 0 {
 		return false
 	}
-	if a.Func == nil {
-		// a.Func is nil and b.Func wasn't, so a must be first.
-		return true
+	if p1.Filename != p2.Filename {
+		// Note that two positions from the same function can have different
+		// filenames because the ssa.Function for "init" can include
+		// initialization code for package-level variables in multiple files.
+		return p1.Filename < p2.Filename
 	}
-	if pkg1, pkg2 := packagePath(a.Func), packagePath(b.Func); pkg1 != pkg2 {
-		return pkg1 < pkg2
-	}
-	return a.Func.Name() < b.Func.Name()
+	return p1.Offset < p2.Offset
 }
 
 // packagePath returns the name of the package the function belongs to, or

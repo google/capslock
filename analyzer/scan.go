@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"go/types"
 	"os"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -44,8 +45,13 @@ func RunCapslock(args []string, output string, pkgs []*packages.Package, queried
 		fmt.Println(string(b))
 		return nil
 	} else if output == "m" || output == "machine" {
+		var cs []string
 		cil := GetCapabilityCounts(pkgs, queriedPackages, config)
 		for c := range cil.CapabilityCounts {
+			cs = append(cs, c)
+		}
+		sort.Strings(cs)
+		for _, c := range cs {
 			fmt.Println(c)
 		}
 		return nil
