@@ -66,13 +66,18 @@ func GetClassifier(excludeUnanalyzed bool) *interesting.Classifier {
 // One CapabilityInfo is returned for every (function, capability) pair, with
 // one example path in the callgraph that demonstrates that capability.
 func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) *cpb.CapabilityInfoList {
-	var caps []*cpb.CapabilityInfo
+	type output struct {
+		*cpb.CapabilityInfo
+		*ssa.Function // used for sorting
+	}
+	var caps []output
 	forEachPath(pkgs, queriedPackages,
 		func(cap cpb.Capability, nodes map[*callgraph.Node]bfsState,
 			v *callgraph.Node,
 		) {
 			i := 0
 			c := cpb.CapabilityInfo{}
+			fn := v.Func
 			var n string
 			var ctype cpb.CapabilityType
 			var b strings.Builder
@@ -106,13 +111,23 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 			}
 			c.CapabilityType = &ctype
 			c.DepPath = proto.String(b.String())
-			caps = append(caps, &c)
+			caps = append(caps, output{&c, fn})
 		}, config)
-	return &cpb.CapabilityInfoList{
-		CapabilityInfo: caps,
+	sort.Slice(caps, func(i, j int) bool {
+		if x, y := caps[i].CapabilityInfo.GetCapability(), caps[j].CapabilityInfo.GetCapability(); x != y {
+			return x < y
+		}
+		return funcCompare(caps[i].Function, caps[j].Function) < 0
+	})
+	cil := &cpb.CapabilityInfoList{
+		CapabilityInfo: make([]*cpb.CapabilityInfo, len(caps)),
 		ModuleInfo:     collectModuleInfo(pkgs),
 		PackageInfo:    collectPackageInfo(pkgs),
 	}
+	for i := range caps {
+		cil.CapabilityInfo[i] = caps[i].CapabilityInfo
+	}
+	return cil
 }
 
 type CapabilityCounter struct {
@@ -190,6 +205,9 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 			ExampleCallpath: counts.example,
 		})
 	}
+	sort.Slice(cs, func(i, j int) bool {
+		return cs[i].GetCapability() < cs[j].GetCapability()
+	})
 	return &cpb.CapabilityStatList{
 		CapabilityStats: cs,
 		ModuleInfo:      collectModuleInfo(pkgs),
@@ -595,7 +613,13 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, config)
 	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
 	extraNodesByCapability = nil // we don't use extraNodesByCapability again.
-	for cap, nodes := range nodesByCapability {
+	var caps []cpb.Capability
+	for cap := range nodesByCapability {
+		caps = append(caps, cap)
+	}
+	sort.Slice(caps, func(i, j int) bool { return caps[i] < caps[j] })
+	for _, cap := range caps {
+		nodes := nodesByCapability[cap]
 		var (
 			visited = make(map[*callgraph.Node]bfsState)
 			q       []*callgraph.Node // queue for the BFS
@@ -607,6 +631,9 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 			}
 			q = append(q, v)
 			visited[v] = bfsState{}
+		}
+		sort.Sort(byFunction(q))
+		for _, v := range q {
 			// Skipping cases where v.Func.Package() doesn't exist.
 			if v.Func.Package() == nil {
 				continue
@@ -618,7 +645,6 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 				fn(cap, visited, v)
 			}
 		}
-		sort.Sort(byName(q))
 		// Perform a BFS backwards through the call graph from the interesting
 		// nodes.
 		for len(q) > 0 {
@@ -632,7 +658,7 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 					incomingEdges = append(incomingEdges, edge)
 				}
 			}
-			sort.Sort(byCallerName(incomingEdges))
+			sort.Sort(byCaller(incomingEdges))
 			for _, edge := range incomingEdges {
 				w := edge.Caller
 				if w.Func == nil {
