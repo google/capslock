@@ -46,8 +46,6 @@ See the [caveats](docs/caveats.md) file.
 
 See the [contributing](CONTRIBUTING.md) file.
 
-
-
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=google/capslock&type=Date)](https://star-history.com/#google/capslock&Date)
