@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
-	"log"
 	"path"
 	"sort"
 	"strings"
@@ -387,9 +386,6 @@ func CapabilityGraph(pkgs []*packages.Package,
 func getPackageNodesWithCapability(pkgs []*packages.Package,
 	config *Config,
 ) (safe nodeset, nodesByCapability, extraNodesByCapability nodesetPerCapability) {
-	if packages.PrintErrors(pkgs) > 0 {
-		log.Fatal("Some packages had errors. Aborting analysis.")
-	}
 	graph, ssaProg, allFunctions := buildGraph(pkgs, true)
 	unsafePointerFunctions := findUnsafePointerConversions(pkgs, ssaProg, allFunctions)
 	ssaProg = nil // possibly save memory; we don't use ssaProg again

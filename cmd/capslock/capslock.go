@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/capslock/analyzer"
 	"github.com/google/capslock/interesting"
+	"golang.org/x/tools/go/packages"
 )
 
 var (
@@ -73,6 +74,9 @@ func main() {
 		for _, p := range pkgs {
 			log.Printf("Loaded package %q\n", p.Name)
 		}
+	}
+	if packages.PrintErrors(pkgs) > 0 {
+		log.Fatal("Some packages had errors. Aborting analysis.")
 	}
 	err = analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, &analyzer.Config{
 		Classifier:     classifier,
