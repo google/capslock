@@ -65,21 +65,27 @@ func diffCapabilityInfoLists(baseline, current *cpb.CapabilityInfoList) {
 		}
 	}
 	sort.Strings(packages)
+	var differenceFound bool
 	for _, packageName := range packages {
 		b := baselineMap[packageName]
 		c := currentMap[packageName]
 		for capability := range c {
 			if _, ok := b[capability]; !ok {
+				differenceFound = true
 				fmt.Printf("Package %s has new capability %s compared to the baseline.\n",
 					packageName, capability)
 			}
 		}
 		for capability := range b {
 			if _, ok := c[capability]; !ok {
+				differenceFound = true
 				fmt.Printf("Package %s no longer has capability %s which was in the baseline.\n",
 					packageName, capability)
 			}
 		}
+	}
+	if differenceFound {
+		os.Exit(1)
 	}
 	os.Exit(0)
 }
