@@ -346,9 +346,11 @@ func (m *methodMatcher) match(typeInfo *types.Info, call *ast.CallExpr) ast.Expr
 	if !ok {
 		return nil
 	}
-	if pkg := named.Obj().Pkg().Path(); pkg != m.pkg {
-		// Not the right package.
-		return nil
+	if named.Obj().Pkg() != nil {
+		if pkg := named.Obj().Pkg().Path(); pkg != m.pkg {
+			// Not the right package.
+			return nil
+		}
 	}
 	if named.Obj().Name() != m.typeName {
 		// Not the right type.
