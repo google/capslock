@@ -106,6 +106,24 @@ func rewriteCallsToSort(pkgs []*packages.Package) {
 					// sort.Stable or sort.IsSorted), replace it with calls to
 					// obj.Less, obj.Swap, and obj.Len, where obj is the argument
 					// that was passed to sort.
+					if _, ok := c.Node().(ast.Stmt); !ok {
+						// c.Node() is not a statement.
+						return true
+					}
+					canRewrite := false
+					switch c.Parent().(type) {
+					case *ast.BlockStmt, *ast.CaseClause, *ast.LabeledStmt:
+						canRewrite = true
+					case *ast.CommClause:
+						canRewrite = c.Index() >= 0
+					}
+					if !canRewrite {
+						// The statement is in a position in the syntax tree where it
+						// can't be replaced with a block or with multiple statements, so
+						// we give up.
+						return true
+					}
+
 					obj := isCallToSort(p.TypesInfo, c.Node())
 					if obj == nil {
 						// This was not a call to a sort function.
@@ -120,15 +138,16 @@ func rewriteCallsToSort(pkgs []*packages.Package) {
 					// so we just use two zeroes.
 					args1 := []ast.Expr{zeroLiteral(p.TypesInfo), zeroLiteral(p.TypesInfo)}
 					args2 := []ast.Expr{zeroLiteral(p.TypesInfo), zeroLiteral(p.TypesInfo)}
-					// Create three statements which call Less, Swap, and Len.  Insert
-					// two before the current node, and finally replace the current node
-					// with the third.
-					c.InsertBefore(
-						statementCallingMethod(p.TypesInfo, obj, "Less", args1))
-					c.InsertBefore(
-						statementCallingMethod(p.TypesInfo, obj, "Swap", args2))
-					c.Replace(
-						statementCallingMethod(p.TypesInfo, obj, "Len", nil))
+					// Create a block with three statements which call Less, Swap,
+					// and Len.  Replace the current node with this block.
+					s1 := statementCallingMethod(p.TypesInfo, obj, "Less", args1)
+					s2 := statementCallingMethod(p.TypesInfo, obj, "Swap", args2)
+					s3 := statementCallingMethod(p.TypesInfo, obj, "Len", nil)
+					if s1 == nil || s2 == nil || s3 == nil {
+						// We did not succeed in creating these statements.
+						return true
+					}
+					c.Replace(&ast.BlockStmt{List: []ast.Stmt{s1, s2, s3}})
 					return true
 				}
 				astutil.Apply(node, pre, nil)
@@ -263,10 +282,17 @@ func isCallToOnceDoEtc(typeInfo *types.Info, node ast.Node) ast.Expr {
 // New AST structures that are created by statementCallingMethod are added
 // to the Types, Selections and Uses fields of typeInfo as needed.  The
 // expressions in methodName and args should already be in typeInfo.
+//
+// If the statement cannot be created, returns nil.
 func statementCallingMethod(typeInfo *types.Info, recv ast.Expr, methodName string, args []ast.Expr) *ast.ExprStmt {
 	// Construct an ast node for the method name, and add it to typeInfo.Uses.
 	methodIdent := ast.NewIdent(methodName)
 	var selection *types.Selection = selectionForMethod(typeInfo.TypeOf(recv), methodName)
+	if selection == nil {
+		// We did not find the desired method for this type.  recv might be an
+		// untyped nil.
+		return nil
+	}
 	typeInfo.Uses[methodIdent] = selection.Obj()
 	// Construct an ast node for the selection (e.g. "v.M"), and add it to
 	// typeInfo.Selections and typeInfo.Types.
