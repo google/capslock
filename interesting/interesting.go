@@ -22,7 +22,7 @@ import (
 //go:embed interesting.cm
 var interestingData string
 
-// Type Classifier contains informatation used to map code features to
+// Type Classifier contains information used to map code features to
 // concrete capabilities.
 type Classifier struct {
 	functionCategory   map[string]cpb.Capability

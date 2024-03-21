@@ -21,7 +21,7 @@ functions override this with other capabilities, such as the
 `CAPABILITY_FILES`.
 
 In addition to mapping packages and library calls to
-capabilites, Capslock may also assign capabilities based
+capabilities, Capslock may also assign capabilities based
 on the use of particular types in the code itself, such as
 [unsafe.Pointer](https://pkg.go.dev/unsafe#Pointer) or
 [reflect.Value](https://pkg.go.dev/reflect#Value).
