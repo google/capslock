@@ -488,7 +488,7 @@ func findUnsafePointerConversions(pkgs []*packages.Package, ssaProg *ssa.Program
 				seenUnsafePointerUseInInitialization: &seenUnsafePointerUseInInitialization,
 				pkg:                                  pkg,
 			}
-			ast.Walk(vis, file)
+			ast.Walk(&vis, file)
 		}
 		if seenUnsafePointerUseInInitialization {
 			// One of the files in this package contained an unsafe.Pointer
