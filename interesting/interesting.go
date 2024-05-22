@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	cpb "github.com/google/capslock/proto"
+	"golang.org/x/tools/go/callgraph"
 )
 
 //go:embed interesting.cm
@@ -197,7 +198,9 @@ func LoadClassifier(source string, r io.Reader, excludeBuiltin bool) (*Classifie
 // considered when searching for transitive capabilities.  We return false for
 // some internal calls in the standard library where we know a potential
 // transitive capability does not arise in practice.
-func (c *Classifier) IncludeCall(caller, callee string) bool {
+func (c *Classifier) IncludeCall(edge *callgraph.Edge) bool {
+	caller := edge.Caller.Func.String()
+	callee := edge.Callee.Func.String()
 	_, ok := internalMap.ignoredEdges[[2]string{caller, callee}]
 	return !ok
 }

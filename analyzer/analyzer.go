@@ -44,7 +44,7 @@ type Classifier interface {
 	// considered when searching for transitive capabilities.  Usually this should
 	// return true, unless there is some reason to know that the particular call
 	// cannot lead to additional capabilities for a function.
-	IncludeCall(caller string, callee string) bool
+	IncludeCall(edge *callgraph.Edge) bool
 }
 
 // GetClassifier returns a classifier for mapping packages and functions to the
@@ -255,10 +255,8 @@ func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, saf
 	for len(q) > 0 {
 		v := q[0]
 		q = q[1:]
-		calleeName := v.Func.String()
 		for _, edge := range v.In {
-			callerName := edge.Caller.Func.String()
-			if !classifier.IncludeCall(callerName, calleeName) {
+			if !classifier.IncludeCall(edge) {
 				continue
 			}
 			w := edge.Caller
@@ -307,11 +305,9 @@ func searchForwardsFromQueriedFunctions(
 		if _, ok := allNodesWithExplicitCapability[v]; ok {
 			continue
 		}
-		calleeName := v.Func.String()
 		out := make(nodeset)
 		for _, edge := range v.Out {
-			callerName := edge.Caller.Func.String()
-			if !classifier.IncludeCall(callerName, calleeName) {
+			if !classifier.IncludeCall(edge) {
 				continue
 			}
 			w := edge.Callee
@@ -647,10 +643,8 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 			v := q[0]
 			q = q[1:]
 			var incomingEdges []*callgraph.Edge
-			calleeName := v.Func.String()
 			for _, edge := range v.In {
-				callerName := edge.Caller.Func.String()
-				if config.Classifier.IncludeCall(callerName, calleeName) {
+				if config.Classifier.IncludeCall(edge) {
 					incomingEdges = append(incomingEdges, edge)
 				}
 			}
