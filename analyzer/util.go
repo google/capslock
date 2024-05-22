@@ -422,7 +422,7 @@ func containsReflectValue(t types.Type) bool {
 	return rec(t)
 }
 
-func (v visitor) Visit(node ast.Node) ast.Visitor {
+func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	if node == nil {
 		return v // the return value is ignored if node == nil.
 	}
@@ -431,8 +431,9 @@ func (v visitor) Visit(node ast.Node) ast.Visitor {
 		// The subtree at this node is a function definition or function literal.
 		// The visitor returned here is used to visit this node's children, so we
 		// return a visitor with the current function set to this node.
-		v.currentFunction = node
-		return v
+		v2 := *v
+		v2.currentFunction = node
+		return &v2
 	case *ast.CallExpr:
 		// A type conversion is represented as a CallExpr node with a Fun that is a
 		// type, and Args containing the expression to be converted.
