@@ -13,6 +13,8 @@ import (
 	"flag"
 	"log"
 	"os"
+	"runtime"
+	"runtime/pprof"
 	"strings"
 
 	"github.com/google/capslock/analyzer"
@@ -30,10 +32,24 @@ var (
 	buildTags      = flag.String("buildtags", "", "command-separated list of build tags to use when loading packages")
 	goos           = flag.String("goos", "", "GOOS value to use when loading packages")
 	goarch         = flag.String("goarch", "", "GOARCH value to use when loading packages")
+	cpuprofile     = flag.String("cpuprofile", "", "write cpu profile to specified file")
+	memprofile     = flag.String("memprofile", "", "write memory profile to specified file")
 )
 
 func main() {
 	flag.Parse()
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal("could not create CPU profile file: ", err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal(err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 	packageNames := strings.Split(*packageList, ",")
 	if *disableBuiltin && *customMap == "" {
 		log.Fatal("Error: --disable_builtin only makes sense with a --capability_map file specified")
@@ -82,6 +98,21 @@ func main() {
 		Classifier:     classifier,
 		DisableBuiltin: *disableBuiltin,
 	})
+
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal("could not create memory profile file: ", err)
+		}
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
+		if err := f.Close(); err != nil {
+			log.Fatal("could not close memory profile file: ", err)
+		}
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
