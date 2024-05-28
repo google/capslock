@@ -7,10 +7,8 @@
 package analyzer
 
 import (
-	"fmt"
 	"go/ast"
 	"go/types"
-	"path"
 	"sort"
 	"strings"
 
@@ -79,28 +77,15 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 			fn := v.Func
 			var n string
 			var ctype cpb.CapabilityType
-			var b strings.Builder
 			var incomingEdge *callgraph.Edge
 			for v != nil {
-				s := v.Func.String()
-				fn := &cpb.Function{Name: proto.String(s)}
-				if position := callsitePosition(incomingEdge); position.IsValid() {
-					fn.Site = &cpb.Function_Site{
-						Filename: proto.String(path.Base(position.Filename)),
-						Line:     proto.Int64(int64(position.Line)),
-						Column:   proto.Int64(int64(position.Column)),
-					}
-				}
-				c.Path = append(c.Path, fn)
+				addFunction(&c.Path, v, incomingEdge)
 				if i == 0 {
 					n = v.Func.Package().Pkg.Path()
 					ctype = cpb.CapabilityType_CAPABILITY_TYPE_DIRECT
-					fmt.Fprintf(&b, "%s", s)
 					c.Capability = cap.Enum()
 					c.PackageDir = proto.String(v.Func.Package().Pkg.Path())
 					c.PackageName = proto.String(v.Func.Package().Pkg.Name())
-				} else {
-					fmt.Fprintf(&b, " %s", s)
 				}
 				i++
 				if pName := packagePath(v.Func); n != pName && !isStdLib(pName) {
@@ -109,6 +94,13 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 				incomingEdge, v = nodes[v].edge, nodes[v].next()
 			}
 			c.CapabilityType = &ctype
+			var b strings.Builder
+			for i, p := range c.Path {
+				if i != 0 {
+					b.WriteByte(' ')
+				}
+				b.WriteString(p.GetName())
+			}
 			c.DepPath = proto.String(b.String())
 			caps = append(caps, output{&c, fn})
 		}, config)
@@ -157,16 +149,7 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 			isDirect := true
 			e := []*cpb.Function{}
 			for v != nil {
-				s := v.Func.String()
-				fn := &cpb.Function{Name: proto.String(s)}
-				if position := callsitePosition(incomingEdge); position.IsValid() {
-					fn.Site = &cpb.Function_Site{
-						Filename: proto.String(path.Base(position.Filename)),
-						Line:     proto.Int64(int64(position.Line)),
-						Column:   proto.Int64(int64(position.Column)),
-					}
-				}
-				e = append(e, fn)
+				addFunction(&e, v, incomingEdge)
 				if i == 0 {
 					n = v.Func.Package().Pkg.Path()
 				}

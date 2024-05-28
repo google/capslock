@@ -21,6 +21,7 @@ import (
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
 	"golang.org/x/tools/go/ssa/ssautil"
+	"google.golang.org/protobuf/proto"
 )
 
 type bfsState struct {
@@ -499,4 +500,74 @@ func programName() string {
 		return path.Base(a[0])
 	}
 	return "capslock"
+}
+
+// addFunction adds an entry to *fns for the given node and edge.
+// The edge can be nil.
+func addFunction(fns *[]*cpb.Function, v *callgraph.Node, incomingEdge *callgraph.Edge) {
+	fn := &cpb.Function{Name: proto.String(v.Func.String())}
+	if pkg := nodeToPackage(v); pkg != "" {
+		fn.Package = proto.String(pkg)
+	}
+	if position := callsitePosition(incomingEdge); position.IsValid() {
+		fn.Site = &cpb.Function_Site{
+			Filename: proto.String(path.Base(position.Filename)),
+			Line:     proto.Int64(int64(position.Line)),
+			Column:   proto.Int64(int64(position.Column)),
+		}
+	}
+	*fns = append(*fns, fn)
+}
+
+// nodeToPackage returns the path of the package of the node's function, or ""
+// if it has no package.
+func nodeToPackage(node *callgraph.Node) string {
+	fn := node.Func
+	// receiverTypePackage returns the package of a method given the type of its
+	// receiver.
+	receiverTypePackage := func(typ types.Type) string {
+		if typ == nil {
+			return ""
+		}
+		if p, ok := typ.(*types.Pointer); ok {
+			typ = p.Elem()
+		}
+		if n, ok := typ.(*types.Named); ok {
+			if pkg := n.Obj().Pkg(); pkg != nil {
+				return pkg.Path()
+			}
+		}
+		return ""
+	}
+	// Ordinary functions and methods.
+	if pkg := fn.Package(); pkg != nil {
+		return pkg.Pkg.Path()
+	}
+	// Generic functions and methods.
+	if o := fn.Origin(); o != nil {
+		if pkg := o.Package(); pkg != nil {
+			return pkg.Pkg.Path()
+		}
+	}
+	// Method expressions.
+	if strings.HasSuffix(fn.Name(), "$thunk") {
+		if len(fn.Params) > 0 {
+			return receiverTypePackage(fn.Params[0].Object().Type())
+		}
+	}
+	// Method values.
+	if strings.HasSuffix(fn.Name(), "$bound") {
+		if len(fn.FreeVars) >= 1 {
+			return receiverTypePackage(fn.FreeVars[0].Type())
+		}
+	}
+	// Other wrappers.
+	if sig := fn.Signature; sig != nil {
+		if recv := sig.Recv(); recv != nil {
+			if pkg := recv.Pkg(); pkg != nil {
+				return pkg.Path()
+			}
+		}
+	}
+	return ""
 }
