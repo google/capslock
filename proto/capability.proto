@@ -40,6 +40,7 @@ message Function {
     optional int64 column = 3;
   }
   optional Site site = 2;
+  optional string package = 3;
 }
 
 message ModuleInfo {
