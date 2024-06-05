@@ -23,13 +23,28 @@ import (
 //go:embed static/*
 var staticContent embed.FS
 
+// DifferenceFoundError indicates that a comparison was successfully run, and
+// a difference was found.
+type DifferenceFoundError struct{}
+
+func (d DifferenceFoundError) Error() string {
+	return "difference found"
+}
+
 func RunCapslock(args []string, output string, pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
 	config *Config) error {
 	if output == "compare" {
 		if len(args) != 1 {
 			return fmt.Errorf("Usage: %s -output=compare <filename>; provided %v args", programName(), len(args))
 		}
-		compare(args[0], pkgs, queriedPackages, config)
+		different, err := compare(args[0], pkgs, queriedPackages, config)
+		if err != nil {
+			return err
+		}
+		if different {
+			return DifferenceFoundError{}
+		}
+		return nil
 	} else if len(args) >= 1 {
 		return fmt.Errorf("%s: unknown command", args)
 	}
