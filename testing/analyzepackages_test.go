@@ -9,15 +9,38 @@ package analyzepackages_test
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	cpb "github.com/google/capslock/proto"
 	"google.golang.org/protobuf/encoding/protojson"
 )
+
+var bin string // temporary file containing the capslock executable
+
+func TestMain(m *testing.M) {
+	// Compile capslock once.
+	f, err := os.CreateTemp("", "capslock*.exe")
+	if err != nil {
+		log.Fatal("Creating temporary file: ", err)
+	}
+	bin = f.Name()
+	if err = f.Close(); err != nil {
+		log.Fatal("Closing temporary file: ", err)
+	}
+	cmd := exec.Command("go", "build", "-o", bin, "../cmd/capslock")
+	if err = cmd.Run(); err != nil {
+		log.Fatal("Building executable: ", err)
+	}
+	// Run tests.
+	m.Run()
+	os.Remove(bin)
+}
 
 type expectedPath struct {
 	Fn  []string
@@ -54,24 +77,36 @@ func (path expectedPath) matches(cil *cpb.CapabilityInfoList) (bool, error) {
 	return false, nil
 }
 
-func TestExpectedOutput(t *testing.T) {
-	// Run analyzepackages, get its stdout in output.
-	cmd := exec.Command(
-		"go", "run", "../cmd/capslock", "-packages=../testpkgs/...", "-output=json")
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		t.Errorf("exec.Command.Run: %v.  stdout:", err)
-		if _, err := os.Stderr.Write(output.Bytes()); err != nil {
-			t.Errorf("couldn't write analyzepackages' output to stderr: %v", err)
-		}
-		t.Fatalf("failed to run analyzepackages.")
-	}
+var analyzeResult struct {
+	sync.Once
+	output []byte
+	error
+}
 
-	cil := new(cpb.CapabilityInfoList)
-	err := protojson.Unmarshal(output.Bytes(), cil)
+// analyze returns the results of analyzing the test packages with
+// capslock -output=json.  It caches its results in analyzeResult.
+func analyze() ([]byte, error) {
+	analyzeResult.Do(func() {
+		cmd := exec.Command(bin, "-packages=../testpkgs/...", "-output=json")
+		var output bytes.Buffer
+		cmd.Stdout = &output
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			analyzeResult.error = fmt.Errorf("running capslock: %w", err)
+			return
+		}
+		analyzeResult.output = output.Bytes()
+	})
+	return analyzeResult.output, analyzeResult.error
+}
+
+func TestExpectedOutput(t *testing.T) {
+	analyzeOutput, err := analyze()
 	if err != nil {
+		t.Fatal(err)
+	}
+	cil := new(cpb.CapabilityInfoList)
+	if err = protojson.Unmarshal(analyzeOutput, cil); err != nil {
 		t.Fatalf("Couldn't parse analyzer output: %v", err)
 	}
 
@@ -227,14 +262,12 @@ func TestExpectedOutput(t *testing.T) {
 		}
 	}
 	if t.Failed() {
-		t.Log(output.String())
+		t.Log(string(analyzeOutput))
 	}
 }
 
 func TestGraph(t *testing.T) {
-	// Run analyzepackages, get its stdout in output.
-	cmd := exec.Command(
-		"go", "run", "../cmd/capslock", "-packages=../testpkgs/useunsafe", "-output=graph")
+	cmd := exec.Command(bin, "-packages=../testpkgs/useunsafe", "-output=graph")
 	var output bytes.Buffer
 	cmd.Stdout = &output
 	cmd.Stderr = os.Stderr
@@ -279,5 +312,97 @@ func TestGraph(t *testing.T) {
 	}
 	if t.Failed() {
 		t.Log(output.String())
+	}
+}
+
+func TestCompare(t *testing.T) {
+	mktemp := func(contents []byte) (name string, err error, done func()) {
+		f, err := os.CreateTemp("", "capslock-test-*.json")
+		if err != nil {
+			return "", err, nil
+		}
+		if _, err = f.Write(contents); err != nil {
+			return "", err, nil
+		}
+		return f.Name(), nil, func() {
+			name := f.Name()
+			f.Close()
+			os.Remove(name)
+		}
+	}
+
+	// Make a temporary file with the expected output.
+	b, err := analyze()
+	if err != nil {
+		t.Fatal(err)
+	}
+	f1, err, done := mktemp(b)
+	if err != nil {
+		t.Fatalf("Creating first temporary file: %v", err)
+	}
+	defer done()
+
+	// Make a second temporary file with some of the output changed, to produce
+	// a difference to be found.
+	b = bytes.ReplaceAll(b, []byte("callruntime"), []byte("callruntime2"))
+	f2, err, done := mktemp(b)
+	if err != nil {
+		t.Fatalf("Creating second temporary file: %v", err)
+	}
+	defer done()
+
+	for _, test := range []struct {
+		diffFile         string
+		granularity      string
+		expectedExitCode int
+		expectedOutput   []string
+	}{
+		{f1, "package", 0, nil},
+		{f1, "function", 0, nil},
+		{f2, "package", 1, []string{
+			"callruntime has new capability CAPABILITY_RUNTIME",
+			"callruntime2 no longer has capability CAPABILITY_RUNTIME",
+		}},
+		{f2, "function", 1, []string{
+			"callruntime.Interesting has new capability CAPABILITY_RUNTIME",
+			"callruntime2.Interesting no longer has capability CAPABILITY_RUNTIME",
+		}},
+		{"../testpkgs/notthere", "package", 2, nil},
+	} {
+		cmd := exec.Command(bin, "-packages=../testpkgs/...", "-granularity="+test.granularity, "-output=compare", test.diffFile)
+		var output bytes.Buffer
+		cmd.Stdout = &output
+		err := cmd.Run()
+		// Check the exit status.
+		switch err := err.(type) {
+		case nil:
+			if got, want := 0, test.expectedExitCode; got != want {
+				t.Errorf("%v: got exit code %d, want %d", test, got, want)
+			}
+		case *exec.ExitError:
+			if got, want := err.ExitCode(), test.expectedExitCode; got != want {
+				t.Errorf("%v: got exit code %d, want %d", test, got, want)
+			}
+		default:
+			t.Errorf("%v: running capslock: %v", test, err)
+		}
+		if t.Failed() {
+			continue
+		}
+		// Check that any expected lines are present in the diff output.
+		lines := strings.Split(output.String(), "\n")
+		for _, expected := range test.expectedOutput {
+			ok := false
+			for _, line := range lines {
+				if matches, err := regexp.MatchString(expected, line); matches {
+					ok = true
+				} else if err != nil {
+					t.Errorf("parsing expression %q: %v", expected, err)
+				}
+			}
+			if !ok {
+				t.Errorf("%v: expected output line %q", test, expected)
+			}
+		}
 	}
 }

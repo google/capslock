@@ -7,10 +7,14 @@
 // Program capslock loads packages specified in command line arguments,
 // and for each function in those packages that has interesting capabilities,
 // outputs a string describing this to stdout.
+//
+// The exit status code is 2 for an error, 1 if a difference is found when a
+// comparison is requested, and 0 otherwise.
 package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -34,35 +38,49 @@ var (
 	goarch         = flag.String("goarch", "", "GOARCH value to use when loading packages")
 	cpuprofile     = flag.String("cpuprofile", "", "write cpu profile to specified file")
 	memprofile     = flag.String("memprofile", "", "write memory profile to specified file")
+	granularity    = flag.String("granularity", "package",
+		`the granularity to use for comparisons, either "package" or "function".`)
 )
 
 func main() {
 	flag.Parse()
+	// The main logic is in 'run' so that deferred functions run before we reach os.Exit.
+	err := run()
+	switch err.(type) {
+	case nil:
+	case analyzer.DifferenceFoundError:
+		os.Exit(1)
+	default:
+		log.Print(err)
+		os.Exit(2)
+	}
+}
 
+func run() error {
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
-			log.Fatal("could not create CPU profile file: ", err)
+			return fmt.Errorf("could not create CPU profile file: %w", err)
 		}
 		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatal(err)
+			return err
 		}
 		defer pprof.StopCPUProfile()
 	}
 
 	packageNames := strings.Split(*packageList, ",")
 	if *disableBuiltin && *customMap == "" {
-		log.Fatal("Error: --disable_builtin only makes sense with a --capability_map file specified")
+		return fmt.Errorf("Error: --disable_builtin only makes sense with a --capability_map file specified")
 	}
 	var classifier *interesting.Classifier
 	if *customMap != "" {
 		f, err := os.Open(*customMap)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		classifier, err = interesting.LoadClassifier(*customMap, f, *disableBuiltin)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		if *noiseFlag {
 			classifier = interesting.ClassifierExcludingUnanalyzed(classifier)
@@ -79,10 +97,10 @@ func main() {
 			GOARCH:    *goarch,
 		})
 	if err != nil {
-		log.Fatalf("Error loading packages: %v", err)
+		return fmt.Errorf("Error loading packages: %w", err)
 	}
 	if len(pkgs) == 0 {
-		log.Fatalf("No packages matching %v", packageNames)
+		return fmt.Errorf("No packages matching %v", packageNames)
 	}
 
 	queriedPackages := analyzer.GetQueriedPackages(pkgs)
@@ -92,28 +110,26 @@ func main() {
 		}
 	}
 	if packages.PrintErrors(pkgs) > 0 {
-		log.Fatal("Some packages had errors. Aborting analysis.")
+		return fmt.Errorf("Some packages had errors. Aborting analysis.")
 	}
 	err = analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, &analyzer.Config{
 		Classifier:     classifier,
 		DisableBuiltin: *disableBuiltin,
+		Granularity:    *granularity,
 	})
 
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {
-			log.Fatal("could not create memory profile file: ", err)
+			return fmt.Errorf("could not create memory profile file: %w", err)
 		}
 		runtime.GC()
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			log.Fatal("could not write memory profile: ", err)
+			return fmt.Errorf("could not write memory profile: %w", err)
 		}
 		if err := f.Close(); err != nil {
-			log.Fatal("could not close memory profile file: ", err)
+			return fmt.Errorf("could not close memory profile file: %w", err)
 		}
 	}
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	return err
 }

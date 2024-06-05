@@ -22,8 +22,15 @@ import (
 
 // Config holds configuration for the analyzer.
 type Config struct {
-	Classifier     Classifier
+	// Classifier is used to assign capabilities to functions.
+	Classifier Classifier
+	// DisableBuiltin disables some additional source-code analyses that find
+	// more capabilities in functions.
 	DisableBuiltin bool
+	// Granularity can be "package" or "function".  It determines whether
+	// capability sets are examined per-package or per-function when doing
+	// comparisons.
+	Granularity string
 }
 
 // Classifier is an interface for types that help map code features to
