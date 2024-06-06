@@ -76,9 +76,7 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 	}
 	var caps []output
 	forEachPath(pkgs, queriedPackages,
-		func(cap cpb.Capability, nodes map[*callgraph.Node]bfsState,
-			v *callgraph.Node,
-		) {
+		func(cap cpb.Capability, nodes bfsStateMap, v *callgraph.Node) {
 			i := 0
 			c := cpb.CapabilityInfo{}
 			fn := v.Func
@@ -144,7 +142,7 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 	var cs []*cpb.CapabilityStats
 	cm := make(map[string]*CapabilityCounter)
 	forEachPath(pkgs, queriedPackages,
-		func(cap cpb.Capability, nodes map[*callgraph.Node]bfsState, v *callgraph.Node) {
+		func(cap cpb.Capability, nodes bfsStateMap, v *callgraph.Node) {
 			if _, ok := cm[cap.String()]; !ok {
 				cm[cap.String()] = &CapabilityCounter{count: 1, capability: cap}
 			} else {
@@ -210,7 +208,7 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 func GetCapabilityCounts(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) *cpb.CapabilityCountList {
 	cm := make(map[string]int64)
 	forEachPath(pkgs, queriedPackages,
-		func(cap cpb.Capability, nodes map[*callgraph.Node]bfsState, v *callgraph.Node) {
+		func(cap cpb.Capability, nodes bfsStateMap, v *callgraph.Node) {
 			if _, ok := cm[cap.String()]; !ok {
 				cm[cap.String()] = 1
 			} else {
@@ -225,9 +223,9 @@ func GetCapabilityCounts(pkgs []*packages.Package, queriedPackages map[*types.Pa
 
 // searchBackwardsFromCapabilities returns the set of all function nodes that
 // have a path to a function with some capability.
-func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, safe nodeset, classifier Classifier) nodeset {
+func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, safe nodeset, classifier Classifier) bfsStateMap {
 	var (
-		visited = make(nodeset)
+		visited = make(bfsStateMap)
 		q       []*callgraph.Node
 	)
 	// Initialize the queue to contain the nodes with a capability.
@@ -237,27 +235,33 @@ func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, saf
 				continue
 			}
 			q = append(q, v)
-			visited[v] = struct{}{}
+			visited[v] = bfsState{}
 		}
 	}
+	sort.Sort(byFunction(q)) // make the search order deterministic
 	// Perform a BFS backwards through the call graph from the interesting
 	// nodes.
 	for len(q) > 0 {
 		v := q[0]
 		q = q[1:]
+		var incomingEdges []*callgraph.Edge
 		for _, edge := range v.In {
 			if !classifier.IncludeCall(edge) {
 				continue
 			}
-			w := edge.Caller
-			if _, ok := safe[w]; ok {
+			if _, ok := safe[edge.Caller]; ok {
 				continue
 			}
+			incomingEdges = append(incomingEdges, edge)
+		}
+		sort.Sort(byCaller(incomingEdges)) // make the search order deterministic
+		for _, edge := range incomingEdges {
+			w := edge.Caller
 			if _, ok := visited[w]; ok {
 				// We have already visited w.
 				continue
 			}
-			visited[w] = struct{}{}
+			visited[w] = bfsState{edge: edge}
 			q = append(q, w)
 		}
 	}
@@ -274,16 +278,21 @@ func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, saf
 func searchForwardsFromQueriedFunctions(
 	nodes nodeset,
 	nodesByCapability nodesetPerCapability,
-	allNodesWithExplicitCapability,
-	canReachCapability nodeset,
+	allNodesWithExplicitCapability nodeset,
+	bfsFromCapabilities bfsStateMap,
 	classifier Classifier,
-	outputCall func(from, to *callgraph.Node),
-	outputCapability func(fn *callgraph.Node, c cpb.Capability),
+	outputCall GraphOutputCallFn,
+	outputCapability GraphOutputCapabilityFn,
 ) {
-	var q []*callgraph.Node
+	var (
+		q              []*callgraph.Node
+		bfsFromQueries = make(bfsStateMap)
+	)
 	for v := range nodes {
 		q = append(q, v)
+		bfsFromQueries[v] = bfsState{}
 	}
+	sort.Sort(byFunction(q)) // make the search order deterministic
 	for len(q) > 0 {
 		v := q[0]
 		q = q[1:]
@@ -295,28 +304,41 @@ func searchForwardsFromQueriedFunctions(
 		if _, ok := allNodesWithExplicitCapability[v]; ok {
 			continue
 		}
-		out := make(nodeset)
+		var outgoingEdges []*callgraph.Edge
 		for _, edge := range v.Out {
 			if !classifier.IncludeCall(edge) {
 				continue
 			}
-			w := edge.Callee
-			if _, ok := canReachCapability[w]; !ok {
+			if _, ok := bfsFromCapabilities[edge.Callee]; !ok {
 				continue
 			}
-			out[w] = struct{}{}
+			outgoingEdges = append(outgoingEdges, edge)
 		}
-		for w := range out {
-			outputCall(v, w)
-			if _, ok := nodes[w]; ok {
+		sort.Sort(byCallee(outgoingEdges)) // make the search order deterministic
+		for i, edge := range outgoingEdges {
+			if i > 0 && edge.Callee == outgoingEdges[i-1].Callee {
+				// We just saw an edge to the same callee, so this edge is redundant.
+				continue
+			}
+			outputCall(bfsFromQueries, edge, bfsFromCapabilities)
+			w := edge.Callee
+			if _, ok := bfsFromQueries[w]; ok {
 				// We have already visited w.
 				continue
 			}
-			nodes[w] = struct{}{}
+			bfsFromQueries[w] = bfsState{edge}
 			q = append(q, w)
 		}
 	}
 }
+
+// GraphOutputCallFn represents a function which is called by CapabilityGraph
+// for each edge.
+type GraphOutputCallFn func(fromQuery bfsStateMap, edge *callgraph.Edge, toCapability bfsStateMap)
+
+// GraphOutputCapabilityFn represents a function which is called by
+// CapabilityGraph for each function capability.
+type GraphOutputCapabilityFn func(fn *callgraph.Node, c cpb.Capability)
 
 // CapabilityGraph analyzes the callgraph for the packages in pkgs.
 //
@@ -324,23 +346,27 @@ func searchForwardsFromQueriedFunctions(
 // to one of the packages in queriedPackages to a function which has
 // some capability.
 //
-// outputCall is called for each edge between two nodes.
+// outputCall is called for each edge between two nodes.  Along with the edge
+// itself, it is passed the state of the BFS search from the queried packages,
+// and the state of the BFS search from functions with a capability, so that
+// the user can reconstruct an example call path including the edge.
+//
 // outputCapability is called for each node in the graph that has some
 // capability.
 func CapabilityGraph(pkgs []*packages.Package,
 	queriedPackages map[*types.Package]struct{},
 	config *Config,
-	outputCall func(from, to *callgraph.Node),
-	outputCapability func(fn *callgraph.Node, c cpb.Capability),
+	outputCall GraphOutputCallFn,
+	outputCapability GraphOutputCapabilityFn,
 ) {
 	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, config)
 	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
 	extraNodesByCapability = nil
 
-	canReachCapability := searchBackwardsFromCapabilities(nodesByCapability, safe, config.Classifier)
+	bfsFromCapabilities := searchBackwardsFromCapabilities(nodesByCapability, safe, config.Classifier)
 
 	canBeReachedFromQuery := make(nodeset)
-	for v := range canReachCapability {
+	for v := range bfsFromCapabilities {
 		if v.Func.Package() == nil {
 			continue
 		}
@@ -353,7 +379,7 @@ func CapabilityGraph(pkgs []*packages.Package,
 		canBeReachedFromQuery,
 		nodesByCapability,
 		allNodesWithExplicitCapability,
-		canReachCapability,
+		bfsFromCapabilities,
 		config.Classifier,
 		outputCall,
 		outputCapability)
@@ -590,7 +616,7 @@ func mergeCapabilities(nodesByCapability, extraNodesByCapability nodesetPerCapab
 //
 // forEachPath may modify pkgs.
 func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
-	fn func(cpb.Capability, map[*callgraph.Node]bfsState, *callgraph.Node), config *Config,
+	fn func(cpb.Capability, bfsStateMap, *callgraph.Node), config *Config,
 ) {
 	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, config)
 	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
@@ -603,7 +629,7 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 	for _, cap := range caps {
 		nodes := nodesByCapability[cap]
 		var (
-			visited = make(map[*callgraph.Node]bfsState)
+			visited = make(bfsStateMap)
 			q       []*callgraph.Node // queue for the BFS
 		)
 		// Initialize the queue to contain the nodes with the capability.
