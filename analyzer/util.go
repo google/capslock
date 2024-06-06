@@ -30,6 +30,10 @@ type bfsState struct {
 	edge *callgraph.Edge
 }
 
+// bfsStateMap represents the state of a BFS search, and can be used to trace
+// paths from the initial nodes of the search to any other node reached.
+type bfsStateMap map[*callgraph.Node]bfsState
+
 // next returns the next node in the path to an interesting function.
 func (b bfsState) next() *callgraph.Node {
 	if b.edge == nil {
@@ -74,6 +78,21 @@ func (s byCaller) Less(i, j int) bool {
 	return positionLess(callsitePosition(s[i]), callsitePosition(s[j]))
 }
 func (s byCaller) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+// byCallee is a slice of *callgraph.Edge that can be sorted using
+// sort.Sort.  It sorts by callee function, then callsite position.
+type byCallee []*callgraph.Edge
+
+func (s byCallee) Len() int { return len(s) }
+func (s byCallee) Less(i, j int) bool {
+	if c := nodeCompare(s[i].Callee, s[j].Callee); c != 0 {
+		return c < 0
+	}
+	return positionLess(callsitePosition(s[i]), callsitePosition(s[j]))
+}
+func (s byCallee) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 

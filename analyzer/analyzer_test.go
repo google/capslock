@@ -106,8 +106,8 @@ func TestGraph(t *testing.T) {
 			Classifier:     interesting.DefaultClassifier(),
 			DisableBuiltin: false,
 		},
-		func(from, to *callgraph.Node) {
-			calls[[2]string{from.Func.String(), to.Func.String()}] = struct{}{}
+		func(_ bfsStateMap, edge *callgraph.Edge, _ bfsStateMap) {
+			calls[[2]string{edge.Caller.Func.String(), edge.Callee.Func.String()}] = struct{}{}
 		},
 		func(fn *callgraph.Node, c cpb.Capability) {
 			f := fn.Func.String()
@@ -225,8 +225,8 @@ func TestGraphWithClassifier(t *testing.T) {
 			Classifier:     testClassifier{},
 			DisableBuiltin: true,
 		},
-		func(from, to *callgraph.Node) {
-			calls[[2]string{from.Func.String(), to.Func.String()}] = struct{}{}
+		func(_ bfsStateMap, edge *callgraph.Edge, _ bfsStateMap) {
+			calls[[2]string{edge.Caller.Func.String(), edge.Callee.Func.String()}] = struct{}{}
 		},
 		func(fn *callgraph.Node, c cpb.Capability) {
 			f := fn.Func.String()
