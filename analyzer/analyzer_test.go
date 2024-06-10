@@ -99,6 +99,7 @@ func TestGraph(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
+	nodes := make(map[string]struct{})
 	calls := make(map[[2]string]struct{})
 	caps := make(map[string][]cpb.Capability)
 	CapabilityGraph(pkgs, queriedPackages,
@@ -106,18 +107,29 @@ func TestGraph(t *testing.T) {
 			Classifier:     interesting.DefaultClassifier(),
 			DisableBuiltin: false,
 		},
-		func(_ bfsStateMap, edge *callgraph.Edge, _ bfsStateMap) {
+		func(_ bfsStateMap, node *callgraph.Node, _ bfsStateMap) {
+			nodes[node.Func.String()] = struct{}{}
+		},
+		func(edge *callgraph.Edge) {
 			calls[[2]string{edge.Caller.Func.String(), edge.Callee.Func.String()}] = struct{}{}
 		},
 		func(fn *callgraph.Node, c cpb.Capability) {
 			f := fn.Func.String()
 			caps[f] = append(caps[f], c)
 		})
+	expectedNodes := map[string]struct{}{
+		"testlib.Foo": {},
+		"os.Getpid":   {},
+	}
 	expectedCalls := map[[2]string]struct{}{
 		{"testlib.Foo", "os.Getpid"}: {},
 	}
 	expectedCaps := map[string][]cpb.Capability{
 		"os.Getpid": {cpb.Capability_CAPABILITY_READ_SYSTEM_STATE},
+	}
+	if !reflect.DeepEqual(nodes, expectedNodes) {
+		t.Errorf("CapabilityGraph(%v): got nodes %v want %v",
+			filemap, nodes, expectedNodes)
 	}
 	if !reflect.DeepEqual(calls, expectedCalls) {
 		t.Errorf("CapabilityGraph(%v): got calls %v want %v",
@@ -218,6 +230,7 @@ func TestGraphWithClassifier(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
+	nodes := make(map[string]struct{})
 	calls := make(map[[2]string]struct{})
 	caps := make(map[string][]cpb.Capability)
 	CapabilityGraph(pkgs, queriedPackages,
@@ -225,13 +238,22 @@ func TestGraphWithClassifier(t *testing.T) {
 			Classifier:     testClassifier{},
 			DisableBuiltin: true,
 		},
-		func(_ bfsStateMap, edge *callgraph.Edge, _ bfsStateMap) {
+		func(_ bfsStateMap, node *callgraph.Node, _ bfsStateMap) {
+			nodes[node.Func.String()] = struct{}{}
+		},
+		func(edge *callgraph.Edge) {
 			calls[[2]string{edge.Caller.Func.String(), edge.Callee.Func.String()}] = struct{}{}
 		},
 		func(fn *callgraph.Node, c cpb.Capability) {
 			f := fn.Func.String()
 			caps[f] = append(caps[f], c)
 		})
+	expectedNodes := map[string]struct{}{
+		"testlib.A":  {},
+		"testlib.B":  {},
+		"testlib.C":  {},
+		"os.IsExist": {},
+	}
 	expectedCalls := map[[2]string]struct{}{
 		{"testlib.A", "testlib.B"}:  {},
 		{"testlib.B", "testlib.C"}:  {},
@@ -239,6 +261,10 @@ func TestGraphWithClassifier(t *testing.T) {
 	}
 	expectedCaps := map[string][]cpb.Capability{
 		"os.IsExist": {cpb.Capability_CAPABILITY_FILES},
+	}
+	if !reflect.DeepEqual(nodes, expectedNodes) {
+		t.Errorf("CapabilityGraph(%v): got nodes %v want %v",
+			filemap, nodes, expectedNodes)
 	}
 	if !reflect.DeepEqual(calls, expectedCalls) {
 		t.Errorf("CapabilityGraph(%v): got calls %v want %v",

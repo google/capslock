@@ -34,13 +34,13 @@ func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 			panic("unexpected node type")
 		}
 	})
-	callEdge := func(_ bfsStateMap, edge *callgraph.Edge, _ bfsStateMap) {
+	callEdge := func(edge *callgraph.Edge) {
 		gb.Edge(edge.Caller, edge.Callee)
 	}
 	capabilityEdge := func(fn *callgraph.Node, c cpb.Capability) {
 		gb.Edge(fn, c)
 	}
-	CapabilityGraph(pkgs, queriedPackages, config, callEdge, capabilityEdge)
+	CapabilityGraph(pkgs, queriedPackages, config, nil, callEdge, capabilityEdge)
 	gb.Done()
 	return w.Flush()
 }

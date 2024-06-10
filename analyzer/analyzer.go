@@ -272,6 +272,7 @@ func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, saf
 // find all the nodes they can reach which themselves reach a node with some
 // capability.
 //
+// outputNode is called for each node found that can reach a capability.
 // outputCall is called for each edge between two such nodes.
 // outputCapability is called for each node reached in the graph that has some
 // direct capability.
@@ -281,6 +282,7 @@ func searchForwardsFromQueriedFunctions(
 	allNodesWithExplicitCapability nodeset,
 	bfsFromCapabilities bfsStateMap,
 	classifier Classifier,
+	outputNode GraphOutputNodeFn,
 	outputCall GraphOutputCallFn,
 	outputCapability GraphOutputCapabilityFn,
 ) {
@@ -289,6 +291,10 @@ func searchForwardsFromQueriedFunctions(
 		bfsFromQueries = make(bfsStateMap)
 	)
 	for v := range nodes {
+		if _, ok := bfsFromCapabilities[v]; !ok {
+			// This node cannot reach a capability.
+			continue
+		}
 		q = append(q, v)
 		bfsFromQueries[v] = bfsState{}
 	}
@@ -296,9 +302,14 @@ func searchForwardsFromQueriedFunctions(
 	for len(q) > 0 {
 		v := q[0]
 		q = q[1:]
-		for c, nodes := range nodesByCapability {
-			if _, ok := nodes[v]; ok {
-				outputCapability(v, c)
+		if outputNode != nil {
+			outputNode(bfsFromQueries, v, bfsFromCapabilities)
+		}
+		if outputCapability != nil {
+			for c, nodes := range nodesByCapability {
+				if _, ok := nodes[v]; ok {
+					outputCapability(v, c)
+				}
 			}
 		}
 		if _, ok := allNodesWithExplicitCapability[v]; ok {
@@ -320,7 +331,9 @@ func searchForwardsFromQueriedFunctions(
 				// We just saw an edge to the same callee, so this edge is redundant.
 				continue
 			}
-			outputCall(bfsFromQueries, edge, bfsFromCapabilities)
+			if outputCall != nil {
+				outputCall(edge)
+			}
 			w := edge.Callee
 			if _, ok := bfsFromQueries[w]; ok {
 				// We have already visited w.
@@ -332,9 +345,13 @@ func searchForwardsFromQueriedFunctions(
 	}
 }
 
+// GraphOutputNodeFn represents a function which is called by CapabilityGraph
+// for each node.
+type GraphOutputNodeFn func(fromQuery bfsStateMap, node *callgraph.Node, toCapability bfsStateMap)
+
 // GraphOutputCallFn represents a function which is called by CapabilityGraph
 // for each edge.
-type GraphOutputCallFn func(fromQuery bfsStateMap, edge *callgraph.Edge, toCapability bfsStateMap)
+type GraphOutputCallFn func(edge *callgraph.Edge)
 
 // GraphOutputCapabilityFn represents a function which is called by
 // CapabilityGraph for each function capability.
@@ -346,16 +363,19 @@ type GraphOutputCapabilityFn func(fn *callgraph.Node, c cpb.Capability)
 // to one of the packages in queriedPackages to a function which has
 // some capability.
 //
-// outputCall is called for each edge between two nodes.  Along with the edge
+// outputNode is called for each node in the graph.  Along with the node
 // itself, it is passed the state of the BFS search from the queried packages,
 // and the state of the BFS search from functions with a capability, so that
-// the user can reconstruct an example call path including the edge.
+// the user can reconstruct an example call path including the node.
+//
+// outputCall is called for each edge between two nodes.
 //
 // outputCapability is called for each node in the graph that has some
 // capability.
 func CapabilityGraph(pkgs []*packages.Package,
 	queriedPackages map[*types.Package]struct{},
 	config *Config,
+	outputNode GraphOutputNodeFn,
 	outputCall GraphOutputCallFn,
 	outputCapability GraphOutputCapabilityFn,
 ) {
@@ -381,6 +401,7 @@ func CapabilityGraph(pkgs []*packages.Package,
 		allNodesWithExplicitCapability,
 		bfsFromCapabilities,
 		config.Classifier,
+		outputNode,
 		outputCall,
 		outputCapability)
 }
