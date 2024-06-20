@@ -33,6 +33,7 @@ var (
 	noiseFlag      = flag.Bool("noisy", false, "include output on unanalyzed function calls (can be noisy)")
 	customMap      = flag.String("capability_map", "", "use a custom capability map file")
 	disableBuiltin = flag.Bool("disable_builtin", false, "when using a custom capability map, disable the builtin capability mappings")
+	capabilities   = flag.String("capabilities", "", "if non-empty, a comma-separated list of capabilities to consider for graph output.  Optionally, all capabilities can be prefixed with '-' to specify capabilities to ignore.")
 	buildTags      = flag.String("buildtags", "", "command-separated list of build tags to use when loading packages")
 	goos           = flag.String("goos", "", "GOOS value to use when loading packages")
 	goarch         = flag.String("goarch", "", "GOARCH value to use when loading packages")
@@ -116,6 +117,7 @@ func run() error {
 		Classifier:     classifier,
 		DisableBuiltin: *disableBuiltin,
 		Granularity:    *granularity,
+		Capabilities:   *capabilities,
 	})
 
 	if *memprofile != "" {

@@ -116,7 +116,8 @@ func TestGraph(t *testing.T) {
 		func(fn *callgraph.Node, c cpb.Capability) {
 			f := fn.Func.String()
 			caps[f] = append(caps[f], c)
-		})
+		},
+		nil)
 	expectedNodes := map[string]struct{}{
 		"testlib.Foo": {},
 		"os.Getpid":   {},
@@ -247,7 +248,8 @@ func TestGraphWithClassifier(t *testing.T) {
 		func(fn *callgraph.Node, c cpb.Capability) {
 			f := fn.Func.String()
 			caps[f] = append(caps[f], c)
-		})
+		},
+		nil)
 	expectedNodes := map[string]struct{}{
 		"testlib.A":  {},
 		"testlib.B":  {},

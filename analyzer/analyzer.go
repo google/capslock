@@ -31,6 +31,11 @@ type Config struct {
 	// capability sets are examined per-package or per-function when doing
 	// comparisons.
 	Granularity string
+	// Capabilities is a comma-separated list of capabilities to use for graph
+	// output mode.  Optionally, the capabilities can all be prefixed with a '-'
+	// character to indicate capabilities to omit.
+	// If the string is empty, all capabilities are used.
+	Capabilities string
 }
 
 // Classifier is an interface for types that help map code features to
@@ -222,8 +227,9 @@ func GetCapabilityCounts(pkgs []*packages.Package, queriedPackages map[*types.Pa
 }
 
 // searchBackwardsFromCapabilities returns the set of all function nodes that
-// have a path to a function with some capability.
-func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, safe nodeset, classifier Classifier) bfsStateMap {
+// have a path in the call graph to a function in nodesByCapability.
+// It ignores edges whose caller is in allNodesWithExplicitCapability.
+func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, safe, allNodesWithExplicitCapability nodeset, classifier Classifier) bfsStateMap {
 	var (
 		visited = make(bfsStateMap)
 		q       []*callgraph.Node
@@ -250,6 +256,11 @@ func searchBackwardsFromCapabilities(nodesByCapability nodesetPerCapability, saf
 				continue
 			}
 			if _, ok := safe[edge.Caller]; ok {
+				continue
+			}
+			if _, ok := allNodesWithExplicitCapability[edge.Caller]; ok {
+				// If edge.Caller is already categorized, we don't want to consider
+				// paths that lead from there to another capability.
 				continue
 			}
 			incomingEdges = append(incomingEdges, edge)
@@ -372,38 +383,58 @@ type GraphOutputCapabilityFn func(fn *callgraph.Node, c cpb.Capability)
 //
 // outputCapability is called for each node in the graph that has some
 // capability.
+//
+// If filter is non-nil, it is called once for each capability.  If it returns
+// true, then CapabilityGraph generates a call graph for that individual
+// capability and calls the relevant output functions, before proceeding to
+// the next capability.  If filter is nil, a single graph is generated
+// including paths for all capabilities.
 func CapabilityGraph(pkgs []*packages.Package,
 	queriedPackages map[*types.Package]struct{},
 	config *Config,
 	outputNode GraphOutputNodeFn,
 	outputCall GraphOutputCallFn,
 	outputCapability GraphOutputCapabilityFn,
+	filter func(capability cpb.Capability) bool,
 ) {
 	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, config)
 	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
 	extraNodesByCapability = nil
 
-	bfsFromCapabilities := searchBackwardsFromCapabilities(nodesByCapability, safe, config.Classifier)
+	search := func(nodesByCapability nodesetPerCapability) {
+		bfsFromCapabilities := searchBackwardsFromCapabilities(nodesByCapability, safe, allNodesWithExplicitCapability, config.Classifier)
 
-	canBeReachedFromQuery := make(nodeset)
-	for v := range bfsFromCapabilities {
-		if v.Func.Package() == nil {
-			continue
+		canBeReachedFromQuery := make(nodeset)
+		for v := range bfsFromCapabilities {
+			if v.Func.Package() == nil {
+				continue
+			}
+			if _, ok := queriedPackages[v.Func.Package().Pkg]; ok {
+				canBeReachedFromQuery[v] = struct{}{}
+			}
 		}
-		if _, ok := queriedPackages[v.Func.Package().Pkg]; ok {
-			canBeReachedFromQuery[v] = struct{}{}
-		}
+
+		searchForwardsFromQueriedFunctions(
+			canBeReachedFromQuery,
+			nodesByCapability,
+			allNodesWithExplicitCapability,
+			bfsFromCapabilities,
+			config.Classifier,
+			outputNode,
+			outputCall,
+			outputCapability)
 	}
-
-	searchForwardsFromQueriedFunctions(
-		canBeReachedFromQuery,
-		nodesByCapability,
-		allNodesWithExplicitCapability,
-		bfsFromCapabilities,
-		config.Classifier,
-		outputNode,
-		outputCall,
-		outputCapability)
+	if filter != nil {
+		// Consider each capability individually.
+		for c, ns := range nodesByCapability {
+			if filter(c) {
+				search(nodesetPerCapability{c: ns})
+			}
+		}
+	} else {
+		// Generate a single graph.
+		search(nodesByCapability)
+	}
 }
 
 // getPackageNodesWithCapability analyzes all the functions in pkgs and their
