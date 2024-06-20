@@ -267,51 +267,85 @@ func TestExpectedOutput(t *testing.T) {
 }
 
 func TestGraph(t *testing.T) {
-	cmd := exec.Command(bin, "-packages=../testpkgs/useunsafe", "-output=graph")
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		t.Errorf("exec.Command.Run: %v.  stdout:", err)
-		if _, err := os.Stderr.Write(output.Bytes()); err != nil {
-			t.Errorf("couldn't write analyzepackages' output to stderr: %v", err)
+	for _, test := range []struct {
+		args      []string
+		wantLines map[string]int
+	}{
+		{
+			[]string{"-packages=../testpkgs/useunsafe", "-output=graph"},
+			map[string]int{
+				`digraph {`: 0,
+				`"github.com/google/capslock/testpkgs/useunsafe.Bar" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
+				`"github.com/google/capslock/testpkgs/useunsafe.Baz" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
+				`"github.com/google/capslock/testpkgs/useunsafe.CallNestedFunctions" -> "github.com/google/capslock/testpkgs/useunsafe.NestedFunctions$1$1$1"`: 0,
+				`"github.com/google/capslock/testpkgs/useunsafe.Foo" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
+				`"github.com/google/capslock/testpkgs/useunsafe.Indirect2" -> "github.com/google/capslock/testpkgs/useunsafe.init$1"`:                          0,
+				`"github.com/google/capslock/testpkgs/useunsafe.Indirect" -> "github.com/google/capslock/testpkgs/useunsafe.ReturnFunction$1"`:                 0,
+				`"github.com/google/capslock/testpkgs/useunsafe.init$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                                        0,
+				`"github.com/google/capslock/testpkgs/useunsafe.init" -> "CAPABILITY_UNSAFE_POINTER"`:                                                          0,
+				`"github.com/google/capslock/testpkgs/useunsafe.NestedFunctions$1$1$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                         0,
+				`"github.com/google/capslock/testpkgs/useunsafe.ReturnFunction$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                              0,
+				`"(github.com/google/capslock/testpkgs/useunsafe.T).M" -> "CAPABILITY_UNSAFE_POINTER"`:                                                         0,
+				`}`: 0,
+			},
+		},
+		{
+			[]string{"-packages=../testpkgs/callos", "-output=graph", "-capabilities=READ_SYSTEM_STATE,NETWORK"},
+			map[string]int{
+				`digraph {`: 0,
+				`"github.com/google/capslock/testpkgs/callos.Baz" -> "os/user.Current"`: 0,
+				`"github.com/google/capslock/testpkgs/callos.Foo" -> "os.Getpid"`:       0,
+				`"os/user.Current" -> "CAPABILITY_READ_SYSTEM_STATE"`:                   0,
+				`"os.Getpid" -> "CAPABILITY_READ_SYSTEM_STATE"`:                         0,
+				`}`: 0,
+			},
+		},
+		{
+			[]string{"-packages=../testpkgs/callos", "-output=graph", "-capabilities=-FILES,-READ_SYSTEM_STATE"},
+			map[string]int{
+				`digraph {`: 0,
+				`"github.com/google/capslock/testpkgs/callos.Bar" -> "os/exec.Command"`:    0,
+				`"github.com/google/capslock/testpkgs/callos.Bar" -> "(*os/exec.Cmd).Run"`: 0,
+				`"os/exec.Command" -> "CAPABILITY_EXEC"`:                                   0,
+				`"(*os/exec.Cmd).Run" -> "CAPABILITY_EXEC"`:                                0,
+				`}`: 0,
+			},
+		},
+	} {
+		cmd := exec.Command(bin, test.args...)
+		var output bytes.Buffer
+		cmd.Stdout = &output
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			t.Errorf("running capslock with arguments %q: %v.  stdout:", test.args, err)
+			if _, err := os.Stderr.Write(output.Bytes()); err != nil {
+				t.Errorf("couldn't write capslock's output to stderr: %v", err)
+			}
+			t.Fatalf("failed to run capslock with arguments %q.", test.args)
 		}
-		t.Fatalf("failed to run analyzepackages.")
-	}
-	// map from expected strings to the number of times each is seen in the output.
-	m := map[string]int{
-		`digraph {`: 0,
-		`"github.com/google/capslock/testpkgs/useunsafe.Bar" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
-		`"github.com/google/capslock/testpkgs/useunsafe.Baz" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
-		`"github.com/google/capslock/testpkgs/useunsafe.CallNestedFunctions" -> "github.com/google/capslock/testpkgs/useunsafe.NestedFunctions$1$1$1"`: 0,
-		`"github.com/google/capslock/testpkgs/useunsafe.Foo" -> "CAPABILITY_UNSAFE_POINTER"`:                                                           0,
-		`"github.com/google/capslock/testpkgs/useunsafe.Indirect2" -> "github.com/google/capslock/testpkgs/useunsafe.init$1"`:                          0,
-		`"github.com/google/capslock/testpkgs/useunsafe.Indirect" -> "github.com/google/capslock/testpkgs/useunsafe.ReturnFunction$1"`:                 0,
-		`"github.com/google/capslock/testpkgs/useunsafe.init$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                                        0,
-		`"github.com/google/capslock/testpkgs/useunsafe.init" -> "CAPABILITY_UNSAFE_POINTER"`:                                                          0,
-		`"github.com/google/capslock/testpkgs/useunsafe.NestedFunctions$1$1$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                         0,
-		`"github.com/google/capslock/testpkgs/useunsafe.ReturnFunction$1" -> "CAPABILITY_UNSAFE_POINTER"`:                                              0,
-		`"(github.com/google/capslock/testpkgs/useunsafe.T).M" -> "CAPABILITY_UNSAFE_POINTER"`:                                                         0,
-		`}`: 0,
-	}
-	for _, s := range strings.Split(output.String(), "\n") {
-		s = strings.TrimSpace(s)
-		if s == "" {
-			continue
+		gotLines := make(map[string]int)
+		failed := false
+		for _, s := range strings.Split(output.String(), "\n") {
+			s = strings.TrimSpace(s)
+			if s == "" {
+				continue
+			}
+			if _, ok := test.wantLines[s]; !ok {
+				t.Errorf("TestGraph(%q): saw unexpected output line %q", test.args, s)
+				failed = true
+				continue
+			}
+			gotLines[s]++
 		}
-		if _, ok := m[s]; !ok {
-			t.Errorf("TestGraph: saw unexpected output line %q", s)
-			continue
+		for s := range test.wantLines {
+			if c := gotLines[s]; c != 1 {
+				t.Errorf("TestGraph(%q): got output line %q %d times, want 1", test.args, s, c)
+				failed = true
+			}
 		}
-		m[s]++
-	}
-	for s, c := range m {
-		if c != 1 {
-			t.Errorf("TestGraph: got output line %q %d times, want 1", s, c)
+		if failed {
+			t.Log(output.String())
 		}
-	}
-	if t.Failed() {
-		t.Log(output.String())
 	}
 }
 
