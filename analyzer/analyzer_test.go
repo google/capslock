@@ -277,3 +277,106 @@ func TestGraphWithClassifier(t *testing.T) {
 			filemap, caps, expectedCaps)
 	}
 }
+
+func TestParseCapabilitiesList(t *testing.T) {
+	for _, test := range []struct {
+		list             string
+		wantCapabilities map[cpb.Capability]struct{}
+		wantNegated      bool
+	}{
+		{
+			list: "NETWORK",
+			wantCapabilities: map[cpb.Capability]struct{}{
+				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
+			},
+			wantNegated: false,
+		},
+		{
+			list:             "",
+			wantCapabilities: nil,
+			wantNegated:      true,
+		},
+		{
+			list: "-NETWORK",
+			wantCapabilities: map[cpb.Capability]struct{}{
+				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
+			},
+			wantNegated: true,
+		},
+		{
+			list: "CAPABILITY_NETWORK",
+			wantCapabilities: map[cpb.Capability]struct{}{
+				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
+			},
+			wantNegated: false,
+		},
+		{
+			list: "NETWORK,FILES",
+			wantCapabilities: map[cpb.Capability]struct{}{
+				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
+				cpb.Capability_CAPABILITY_FILES:   struct{}{},
+			},
+			wantNegated: false,
+		},
+		{
+			list: "-NETWORK,-CAPABILITY_FILES",
+			wantCapabilities: map[cpb.Capability]struct{}{
+				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
+				cpb.Capability_CAPABILITY_FILES:   struct{}{},
+			},
+			wantNegated: true,
+		},
+		{
+			list: "CAPABILITY_FILES,CAPABILITY_NETWORK,CAPABILITY_RUNTIME,CAPABILITY_READ_SYSTEM_STATE,CAPABILITY_MODIFY_SYSTEM_STATE,CAPABILITY_OPERATING_SYSTEM,CAPABILITY_SYSTEM_CALLS,CAPABILITY_ARBITRARY_EXECUTION,CAPABILITY_CGO,CAPABILITY_UNANALYZED,CAPABILITY_UNSAFE_POINTER,CAPABILITY_REFLECT,CAPABILITY_EXEC",
+			wantCapabilities: map[cpb.Capability]struct{}{
+				cpb.Capability_CAPABILITY_FILES:               struct{}{},
+				cpb.Capability_CAPABILITY_NETWORK:             struct{}{},
+				cpb.Capability_CAPABILITY_RUNTIME:             struct{}{},
+				cpb.Capability_CAPABILITY_READ_SYSTEM_STATE:   struct{}{},
+				cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE: struct{}{},
+				cpb.Capability_CAPABILITY_OPERATING_SYSTEM:    struct{}{},
+				cpb.Capability_CAPABILITY_SYSTEM_CALLS:        struct{}{},
+				cpb.Capability_CAPABILITY_ARBITRARY_EXECUTION: struct{}{},
+				cpb.Capability_CAPABILITY_CGO:                 struct{}{},
+				cpb.Capability_CAPABILITY_UNANALYZED:          struct{}{},
+				cpb.Capability_CAPABILITY_UNSAFE_POINTER:      struct{}{},
+				cpb.Capability_CAPABILITY_REFLECT:             struct{}{},
+				cpb.Capability_CAPABILITY_EXEC:                struct{}{},
+			},
+			wantNegated: false,
+		},
+	} {
+		capabilities, negated, err := parseCapabilitiesList(test.list)
+		if err != nil {
+			t.Errorf("parseCapabilitiesList(%q): got err == %v, want nil error",
+				test.list, err)
+			continue
+		}
+		if !reflect.DeepEqual(capabilities, test.wantCapabilities) {
+			t.Errorf("parseCapabilitiesList(%q): got capabilities %v want %v",
+				test.list, capabilities, test.wantCapabilities)
+		}
+		if negated != test.wantNegated {
+			t.Errorf("parseCapabilitiesList(%q): got negated = %v want %v",
+				test.list, negated, test.wantNegated)
+		}
+	}
+	for _, list := range []string{
+		"NOTWORK",
+		"FILES!",
+		"NETWORKFILES",
+		"-NETWORK,FILES",
+		"NETWORK,-FILES",
+		",NETWORK",
+		"NETWORK,",
+		"NETWORK,,FILES",
+		",",
+		",,",
+		"\x00",
+	} {
+		_, _, err := parseCapabilitiesList(list)
+		if err == nil {
+			t.Errorf("parseCapabilitiesList(%q): got err == nil, want error", list)
+		}
+	}
+}
