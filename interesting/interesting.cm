@@ -58,6 +58,10 @@ func maps.keys CAPABILITY_SAFE
 func maps.values CAPABILITY_SAFE
 
 func math/rand.fastrand64 CAPABILITY_SAFE
+func math/rand.runtime_rand CAPABILITY_SAFE
+func math/rand/v2.runtime_rand CAPABILITY_SAFE
+
+func mime/multipart.readMIMEHeader CAPABILITY_UNANALYZED # uses linkname
 
 func net.CIDRMask CAPABILITY_SAFE
 func net.Dial CAPABILITY_NETWORK
@@ -169,7 +173,7 @@ func os.DirFS CAPABILITY_FILES
 func os.Environ CAPABILITY_READ_SYSTEM_STATE
 func os.Executable CAPABILITY_READ_SYSTEM_STATE
 func os.Exit CAPABILITY_SAFE
-func os.Expand CAPABILITY_SAFE
+func os.Expand CAPABILITY_UNSPECIFIED # calls its second parameter
 func os.ExpandEnv CAPABILITY_READ_SYSTEM_STATE
 func os.Getegid CAPABILITY_READ_SYSTEM_STATE
 func os.Getenv CAPABILITY_READ_SYSTEM_STATE
@@ -268,6 +272,8 @@ func os/exec.init CAPABILITY_SAFE
 func (*os/exec.Error).Error CAPABILITY_SAFE
 func (*os/exec.Error).Unwrap CAPABILITY_SAFE
 func (*os/exec.ExitError).Error CAPABILITY_SAFE
+func (*os/exec.prefixSuffixSaver).Bytes CAPABILITY_SAFE
+func (*os/exec.prefixSuffixSaver).Write CAPABILITY_SAFE
 func (os/exec.wrappedError).Error CAPABILITY_UNSPECIFIED
 func (os/exec.wrappedError).Unwrap CAPABILITY_SAFE
 
@@ -536,6 +542,7 @@ func strings.TrimPrefix CAPABILITY_SAFE
 func strings.TrimRight CAPABILITY_SAFE
 func strings.TrimSpace CAPABILITY_SAFE
 func strings.TrimSuffix CAPABILITY_SAFE
+func (*strings.Builder).copyCheck CAPABILITY_SAFE
 
 func sync.fastrandn CAPABILITY_SAFE
 func sync.init CAPABILITY_SAFE
@@ -568,13 +575,24 @@ func sync/atomic.StorePointer CAPABILITY_UNSAFE_POINTER
 func sync/atomic.SwapPointer CAPABILITY_UNSAFE_POINTER
 
 func syscall.init CAPABILITY_SAFE
+func syscall.Getenv CAPABILITY_READ_SYSTEM_STATE
 func (*syscall.DLLError).Error CAPABILITY_SAFE
 func (*syscall.DLLError).Unwrap CAPABILITY_SAFE
 func (syscall.Errno).Error CAPABILITY_SAFE
 func (syscall.Errno).Is CAPABILITY_SAFE
 func (syscall.Errno).Temporary CAPABILITY_SAFE
 func (syscall.Errno).Timeout CAPABILITY_SAFE
+func (syscall.Signal).String CAPABILITY_SAFE
+func (*syscall.Timespec).Unix CAPABILITY_SAFE
+func (syscall.WaitStatus).Continued CAPABILITY_SAFE
+func (syscall.WaitStatus).CoreDump CAPABILITY_SAFE
 func (syscall.WaitStatus).ExitStatus CAPABILITY_SAFE
+func (syscall.WaitStatus).Exited CAPABILITY_SAFE
+func (syscall.WaitStatus).Signal CAPABILITY_SAFE
+func (syscall.WaitStatus).Signaled CAPABILITY_SAFE
+func (syscall.WaitStatus).StopSignal CAPABILITY_SAFE
+func (syscall.WaitStatus).Stopped CAPABILITY_SAFE
+func (syscall.WaitStatus).TrapCause CAPABILITY_SAFE
 
 func text/template.builtinFuncs CAPABILITY_SAFE
 
@@ -586,9 +604,51 @@ func (*vendor/golang.org/x/crypto/cryptobyte.String).ReadASN1Integer CAPABILITY_
 func (*vendor/golang.org/x/crypto/cryptobyte.String).ReadOptionalASN1Integer CAPABILITY_SAFE
 func vendor/golang.org/x/sys/cpu.init CAPABILITY_SAFE
 
+func golang.org/x/crypto/argon2.blamkaSSE4 CAPABILITY_SAFE
+func golang.org/x/crypto/argon2.mixBlocksSSE2 CAPABILITY_SAFE
+func golang.org/x/crypto/argon2.xorBlocksSSE2 CAPABILITY_SAFE
+func golang.org/x/crypto/blake2b.hashBlocksAVX CAPABILITY_SAFE
+func golang.org/x/crypto/blake2b.hashBlocksAVX2 CAPABILITY_SAFE
+func golang.org/x/crypto/blake2b.hashBlocksSSE4 CAPABILITY_SAFE
+func golang.org/x/crypto/blake2s.hashBlocksSSE2 CAPABILITY_SAFE
+func golang.org/x/crypto/blake2s.hashBlocksSSE4 CAPABILITY_SAFE
+func golang.org/x/crypto/blake2s.hashBlocksSSSE3 CAPABILITY_SAFE
+func golang.org/x/crypto/chacha20poly1305.chacha20Poly1305Open CAPABILITY_SAFE
+func golang.org/x/crypto/chacha20poly1305.chacha20Poly1305Seal CAPABILITY_SAFE
+func golang.org/x/crypto/curve25519.cswap CAPABILITY_SAFE
+func golang.org/x/crypto/curve25519.freeze CAPABILITY_SAFE
+func golang.org/x/crypto/curve25519.ladderstep CAPABILITY_SAFE
+func golang.org/x/crypto/curve25519.mul CAPABILITY_SAFE
+func golang.org/x/crypto/curve25519.square CAPABILITY_SAFE
+func golang.org/x/crypto/curve25519/internal/field.feMul CAPABILITY_SAFE
+func golang.org/x/crypto/curve25519/internal/field.feSquare CAPABILITY_SAFE
+func golang.org/x/crypto/internal/poly1305.update CAPABILITY_SAFE
+func golang.org/x/crypto/poly1305.poly1305 CAPABILITY_SAFE
+func golang.org/x/crypto/poly1305.update CAPABILITY_SAFE
+func golang.org/x/crypto/salsa20/salsa.salsa2020XORKeyStream CAPABILITY_SAFE
+func golang.org/x/crypto/sha3.copyOut CAPABILITY_SAFE
 func golang.org/x/crypto/sha3.copyOutUnaligned CAPABILITY_SAFE
 func golang.org/x/crypto/sha3.keccakF1600 CAPABILITY_SAFE
+func golang.org/x/crypto/sha3.xorIn CAPABILITY_SAFE
 func golang.org/x/crypto/sha3.xorInUnaligned CAPABILITY_SAFE
+func (*golang.org/x/crypto/sha3.storageBuf).asBytes CAPABILITY_SAFE
+
+ignore_edge (*golang.org/x/image/draw.kernelScaler).Scale (*sync.Pool).Get
+ignore_edge golang.org/x/image/font/sfnt.makeCachedClassLookupFormat2$1 sort.Search
+ignore_edge golang.org/x/image/font/sfnt.makeCachedCoverageRange$1 sort.Search
+ignore_edge golang.org/x/image/font/sfnt.makeCachedCoverageList$1 sort.Search
+func golang.org/x/image/vector.fixedAccumulateMaskSIMD CAPABILITY_SAFE
+func golang.org/x/image/vector.fixedAccumulateOpOverSIMD CAPABILITY_SAFE
+func golang.org/x/image/vector.fixedAccumulateOpSrcSIMD CAPABILITY_SAFE
+func golang.org/x/image/vector.floatingAccumulateMaskSIMD CAPABILITY_SAFE
+func golang.org/x/image/vector.floatingAccumulateOpOverSIMD CAPABILITY_SAFE
+func golang.org/x/image/vector.floatingAccumulateOpSrcSIMD CAPABILITY_SAFE
+func golang.org/x/image/vector.haveSSE4_1 CAPABILITY_SAFE
+
+func golang.org/x/sys/unix.init CAPABILITY_SAFE
+
+func golang.org/x/tools/container/intsets.havePOPCNT CAPABILITY_SAFE
+func golang.org/x/tools/container/intsets.popcnt CAPABILITY_SAFE
 
 # Int.Rand uses an arbitrary random-number generator passed in a
 # parameter, so it can reach code outside math/big.  We classify
@@ -679,6 +739,7 @@ package time/tzdata CAPABILITY_SAFE
 package vendor/golang.org/x/crypto/chacha20poly1305 CAPABILITY_SAFE
 package vendor/golang.org/x/crypto/internal/poly1305 CAPABILITY_SAFE
 package vendor/golang.org/x/sys/cpu CAPABILITY_SAFE
+package golang.org/x/sys/cpu CAPABILITY_SAFE
 
 package internal/syscall/execenv CAPABILITY_READ_SYSTEM_STATE
 package internal/syscall/unix CAPABILITY_SYSTEM_CALLS
@@ -722,8 +783,25 @@ ignore_edge go/printer.newPrinter (*sync.Pool).Get
 ignore_edge internal/coverage/encodemeta.NewCoverageMetaDataBuilder io.WriteString
 ignore_edge internal/coverage/encodemeta.hashFuncDesc io.WriteString
 ignore_edge internal/poll.getPipe (*sync.Pool).Get
+ignore_edge log.getBuffer (*sync.Pool).Get
+ignore_edge log/slog/internal/buffer.New (*sync.Pool).Get
 ignore_edge net/http/httputil.DumpRequest io.WriteString
 ignore_edge vendor/golang.org/x/net/http2/hpack.HuffmanDecode (*sync.Pool).Get
+ignore_edge golang.org/x/net/http2.ReadFrameHeader (*sync.Pool).Get
+ignore_edge golang.org/x/net/http2.curGoroutineID (*sync.Pool).Get
+ignore_edge golang.org/x/net/http2.encodeHeaders (*sync.Pool).Get
+ignore_edge golang.org/x/net/http2.getDataBufferChunk (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2.bufferedWriter).Write (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2.clientStream).writeRequestBody (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2.responseWriter).Push (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2.responseWriterState).promoteUndeclaredTrailers (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2.serverConn).newResponseWriter (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2.serverConn).writeDataFromHandler (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2.serverConn).writeHeaders (*sync.Pool).Get
+ignore_edge golang.org/x/net/http2/hpack.HuffmanDecode (*sync.Pool).Get
+ignore_edge golang.org/x/net/http2/hpack.HuffmanDecodeToString (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2/hpack.Decoder).decodeString (*sync.Pool).Get
+ignore_edge (*golang.org/x/net/http2/hpack.Decoder).readString (*sync.Pool).Get
 
 # cgo_suffix defines function name suffixes that are automatically generated
 # by cgo. These are used to identify their presence as Capslock cannot analyze
@@ -732,6 +810,7 @@ cgo_suffix _Cfunc_CBytes
 cgo_suffix _Cfunc_CString
 cgo_suffix _Cfunc_GoBytes
 cgo_suffix _Cfunc_GoStringN
+cgo_suffix _Cgo_no_callback
 cgo_suffix _Cgo_use
 cgo_suffix _cgoCheckPointer
 cgo_suffix _cgoCheckResult
