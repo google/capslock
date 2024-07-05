@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/fatih/color v1.17.0
 	github.com/google/go-cmp v0.6.0
-	golang.org/x/tools v0.22.0
+	golang.org/x/tools v0.22.1-0.20240611174316-dddd55df4919
 	google.golang.org/protobuf v1.34.2
 )
 
