@@ -525,8 +525,8 @@ func programName() string {
 // The edge can be nil.
 func addFunction(fns *[]*cpb.Function, v *callgraph.Node, incomingEdge *callgraph.Edge) {
 	fn := &cpb.Function{Name: proto.String(v.Func.String())}
-	if pkg := nodeToPackage(v); pkg != "" {
-		fn.Package = proto.String(pkg)
+	if pkg := nodeToPackage(v); pkg != nil {
+		fn.Package = proto.String(pkg.Path())
 	}
 	if position := callsitePosition(incomingEdge); position.IsValid() {
 		fn.Site = &cpb.Function_Site{
@@ -538,34 +538,34 @@ func addFunction(fns *[]*cpb.Function, v *callgraph.Node, incomingEdge *callgrap
 	*fns = append(*fns, fn)
 }
 
-// nodeToPackage returns the path of the package of the node's function, or ""
-// if it has no package.
-func nodeToPackage(node *callgraph.Node) string {
+// nodeToPackage returns the package of the node's function, or nil if it has
+// no associated package, e.g. because it is a wrapper function.
+func nodeToPackage(node *callgraph.Node) *types.Package {
 	fn := node.Func
 	// receiverTypePackage returns the package of a method given the type of its
 	// receiver.
-	receiverTypePackage := func(typ types.Type) string {
+	receiverTypePackage := func(typ types.Type) *types.Package {
 		if typ == nil {
-			return ""
+			return nil
 		}
 		if p, ok := typ.(*types.Pointer); ok {
 			typ = p.Elem()
 		}
 		if n, ok := typ.(*types.Named); ok {
 			if pkg := n.Obj().Pkg(); pkg != nil {
-				return pkg.Path()
+				return pkg
 			}
 		}
-		return ""
+		return nil
 	}
 	// Ordinary functions and methods.
 	if pkg := fn.Package(); pkg != nil {
-		return pkg.Pkg.Path()
+		return pkg.Pkg
 	}
 	// Generic functions and methods.
 	if o := fn.Origin(); o != nil {
 		if pkg := o.Package(); pkg != nil {
-			return pkg.Pkg.Path()
+			return pkg.Pkg
 		}
 	}
 	// Method expressions.
@@ -584,9 +584,9 @@ func nodeToPackage(node *callgraph.Node) string {
 	if sig := fn.Signature; sig != nil {
 		if recv := sig.Recv(); recv != nil {
 			if pkg := recv.Pkg(); pkg != nil {
-				return pkg.Path()
+				return pkg
 			}
 		}
 	}
-	return ""
+	return nil
 }
