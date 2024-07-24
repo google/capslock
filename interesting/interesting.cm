@@ -156,9 +156,42 @@ func (*net.timeoutError).Is CAPABILITY_SAFE
 func (*net.timeoutError).Temporary CAPABILITY_SAFE
 
 func net/http.init CAPABILITY_SAFE
+func net/http.CanonicalHeaderKey CAPABILITY_SAFE
+func net/http.DetectContentType CAPABILITY_SAFE
+func net/http.ParseCookie CAPABILITY_SAFE
+func net/http.ParseHTTPVersion CAPABILITY_SAFE
+func net/http.ParseSetCookie CAPABILITY_SAFE
+func net/http.ParseTime CAPABILITY_SAFE
+func net/http.StatusText CAPABILITY_SAFE
+func (net/http.ConnState).String CAPABILITY_SAFE
+func (*net/http.Cookie).String CAPABILITY_SAFE
+func (*net/http.Cookie).Valid CAPABILITY_SAFE
+func (net/http.Header).Add CAPABILITY_SAFE
+func (net/http.Header).Clone CAPABILITY_SAFE
+func (net/http.Header).Del CAPABILITY_SAFE
+func (net/http.Header).Get CAPABILITY_SAFE
+func (net/http.Header).Set CAPABILITY_SAFE
+func (net/http.Header).Values CAPABILITY_SAFE
+func (*net/http.MaxBytesError).Error CAPABILITY_SAFE
 func (*net/http.ProtocolError).Error CAPABILITY_SAFE
 func (*net/http.ProtocolError).Is CAPABILITY_SAFE
+func (net/http.http2ConnectionError).Error CAPABILITY_SAFE
+func (net/http.http2ErrCode).String CAPABILITY_SAFE
+func (net/http.http2GoAwayError).Error CAPABILITY_SAFE
+func (net/http.http2connError).Error CAPABILITY_SAFE
+func (net/http.http2duplicatePseudoHeaderError).Error CAPABILITY_SAFE
+func (net/http.http2goAwayFlowError).Error CAPABILITY_SAFE
+func (net/http.http2headerFieldNameError).Error CAPABILITY_SAFE
+func (net/http.http2headerFieldValueError).Error CAPABILITY_SAFE
+func (*net/http.http2httpError).Error CAPABILITY_SAFE
+func (net/http.http2noCachedConnError).Error CAPABILITY_SAFE
+func (net/http.http2pseudoHeaderError).Error CAPABILITY_SAFE
+func (net/http.issue22091Error).Error CAPABILITY_SAFE
 func (net/http.nothingWrittenError).Unwrap CAPABILITY_SAFE
+func (net/http.statusError).Error CAPABILITY_SAFE
+func (*net/http.timeoutError).Error CAPABILITY_SAFE
+func (net/http.tlsHandshakeTimeoutError).Error CAPABILITY_SAFE
+func (*net/http.unsupportedTEError).Error CAPABILITY_SAFE
 
 func (net/netip.Addr).WithZone CAPABILITY_SAFE
 
