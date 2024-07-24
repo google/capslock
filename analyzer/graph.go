@@ -89,24 +89,21 @@ func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 type graphBuilder struct {
 	io.Writer
 	nodeNamer func(any) string
-	started   bool
 	done      bool
 }
 
 func newGraphBuilder(w io.Writer, nodeNamer func(any) string) graphBuilder {
-	return graphBuilder{
+	gb := graphBuilder{
 		Writer:    w,
 		nodeNamer: nodeNamer,
 	}
+	gb.Write([]byte("digraph {\n"))
+	return gb
 }
 
 func (gb *graphBuilder) Edge(from, to interface{}) {
 	if gb.done {
 		panic("done")
-	}
-	if !gb.started {
-		gb.Write([]byte("digraph {\n"))
-		gb.started = true
 	}
 	gb.Write([]byte("\t"))
 	gb.Write([]byte(`"`))

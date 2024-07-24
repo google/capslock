@@ -311,6 +311,13 @@ func TestGraph(t *testing.T) {
 				`}`: 0,
 			},
 		},
+		{
+			[]string{"-packages=../testpkgs/callutf8", "-output=graph"},
+			map[string]int{
+				`digraph {`: 0,
+				`}`:         0,
+			},
+		},
 	} {
 		cmd := exec.Command(bin, test.args...)
 		var output bytes.Buffer
