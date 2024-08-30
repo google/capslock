@@ -27,15 +27,12 @@ type Config struct {
 	// DisableBuiltin disables some additional source-code analyses that find
 	// more capabilities in functions.
 	DisableBuiltin bool
-	// Granularity can be "package" or "function".  It determines whether
-	// capability sets are examined per-package or per-function when doing
-	// comparisons.
-	Granularity string
-	// Capabilities is a comma-separated list of capabilities to use for graph
-	// output mode.  Optionally, the capabilities can all be prefixed with a '-'
-	// character to indicate capabilities to omit.
-	// If the string is empty, all capabilities are used.
-	Capabilities string
+	// Granularity determines whether capability sets are examined per-package
+	// or per-function when doing comparisons.
+	Granularity Granularity
+	// CapabilitySet is the set of capabilities to use for graph output mode.
+	// If CapabilitySet is nil, all capabilities are used.
+	CapabilitySet *CapabilitySet
 }
 
 // Classifier is an interface for types that help map code features to

@@ -18,29 +18,31 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// granularity determines the kind of comparison done by compare.
-type granularity int8
+// Granularity determines the kind of comparison done by compare.
+type Granularity int8
 
 const (
-	granularityPackage  granularity = iota // compare capabilities per package
-	granularityFunction                    // compare capabilities per function
+	GranularityUnset    Granularity = iota // use default granularity
+	GranularityPackage                     // compare capabilities per package
+	GranularityFunction                    // compare capabilities per function
 )
 
-func granularityFromString(g string) (granularity, error) {
+func GranularityFromString(g string) (Granularity, error) {
 	switch g {
+	case "":
+		return GranularityUnset, nil
 	case "package":
-		return granularityPackage, nil
+		return GranularityPackage, nil
 	case "function":
-		return granularityFunction, nil
+		return GranularityFunction, nil
 	default:
 		return 0, fmt.Errorf("unknown granularity: %q", g)
 	}
 }
 
 func compare(baselineFilename string, pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) (different bool, err error) {
-	g, err := granularityFromString(config.Granularity)
-	if err != nil {
-		return false, err
+	if config.Granularity == GranularityUnset {
+		config.Granularity = GranularityPackage
 	}
 	compareData, err := os.ReadFile(baselineFilename)
 	if err != nil {
@@ -52,7 +54,7 @@ func compare(baselineFilename string, pkgs []*packages.Package, queriedPackages 
 		return false, fmt.Errorf("Comparison file should include output from running `%s -output=j`. Error from parsing comparison file: %v", programName(), err.Error())
 	}
 	cil := GetCapabilityInfo(pkgs, queriedPackages, config)
-	return diffCapabilityInfoLists(baseline, cil, g), nil
+	return diffCapabilityInfoLists(baseline, cil, config.Granularity), nil
 }
 
 type mapKey struct {
@@ -64,16 +66,16 @@ type capabilitiesMap map[mapKey]*cpb.CapabilityInfo
 // populateMap takes a CapabilityInfoList and returns a map from package
 // or function and capability to a pointer to the corresponding entry in the
 // input.
-func populateMap(cil *cpb.CapabilityInfoList, g granularity) capabilitiesMap {
+func populateMap(cil *cpb.CapabilityInfoList, g Granularity) capabilitiesMap {
 	m := make(capabilitiesMap)
 	for _, ci := range cil.GetCapabilityInfo() {
 		mk := mapKey{capability: ci.GetCapability()}
 		// The calculation of mk.key depends on the desired granularity.
 		switch g {
-		case granularityPackage:
+		case GranularityPackage:
 			mk.key = ci.GetPackageDir()
 			m[mk] = ci
-		case granularityFunction:
+		case GranularityFunction:
 			if len(ci.Path) == 0 {
 				break
 			}
@@ -86,7 +88,7 @@ func populateMap(cil *cpb.CapabilityInfoList, g granularity) capabilitiesMap {
 	return m
 }
 
-func diffCapabilityInfoLists(baseline, current *cpb.CapabilityInfoList, g granularity) (different bool) {
+func diffCapabilityInfoLists(baseline, current *cpb.CapabilityInfoList, g Granularity) (different bool) {
 	baselineMap := populateMap(baseline, g)
 	currentMap := populateMap(current, g)
 	var keys []mapKey
