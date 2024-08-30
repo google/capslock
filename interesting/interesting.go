@@ -13,6 +13,8 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 
@@ -142,15 +144,6 @@ func ClassifierExcludingUnanalyzed(classifier *Classifier) *Classifier {
 	return &withoutUnanalyzed
 }
 
-func mergeCapabilityMap(dst, s1, s2 map[string]cpb.Capability) {
-	for k, v := range s1 {
-		dst[k] = v
-	}
-	for k, v := range s2 {
-		dst[k] = v
-	}
-}
-
 // LoadClassifier returns a capability classifier loaded from the specified
 // io.Reader. The filename argument is used only for providing context to
 // error messages. The classifier will also include the default Capslock
@@ -169,28 +162,17 @@ func LoadClassifier(source string, r io.Reader, excludeBuiltin bool) (*Classifie
 	}
 	ret := newClassifier()
 	// Merge.
-	// TODO(djm): use `maps.Copy` once it graduates from x/exp.
-	mergeCapabilityMap(ret.functionCategory, internalMap.functionCategory, userClassifier.functionCategory)
-	mergeCapabilityMap(ret.unanalyzedCategory, internalMap.unanalyzedCategory, userClassifier.unanalyzedCategory)
-	mergeCapabilityMap(ret.packageCategory, internalMap.packageCategory, userClassifier.packageCategory)
-	for k, v := range internalMap.ignoredEdges {
-		ret.ignoredEdges[k] = v
+	cc := func(dst, src *Classifier) {
+		maps.Copy(dst.functionCategory, src.functionCategory)
+		maps.Copy(dst.unanalyzedCategory, src.unanalyzedCategory)
+		maps.Copy(dst.packageCategory, src.packageCategory)
+		maps.Copy(dst.ignoredEdges, src.ignoredEdges)
+		dst.cgoSuffixes = append(dst.cgoSuffixes, src.cgoSuffixes...)
 	}
-	for k, v := range userClassifier.ignoredEdges {
-		ret.ignoredEdges[k] = v
-	}
-	cgoSuffixes := map[string]bool{}
-	for _, v := range internalMap.cgoSuffixes {
-		cgoSuffixes[v] = true
-	}
-	for _, v := range userClassifier.cgoSuffixes {
-		cgoSuffixes[v] = true
-	}
-	// TODO(djm) use `maps.Keys` once it graduates from x/exp.
-	for k := range cgoSuffixes {
-		ret.cgoSuffixes = append(ret.cgoSuffixes, k)
-	}
+	cc(ret, internalMap)
+	cc(ret, userClassifier)
 	sort.Strings(ret.cgoSuffixes)
+	ret.cgoSuffixes = slices.Compact(ret.cgoSuffixes) // remove duplicates
 	return ret, nil
 }
 
