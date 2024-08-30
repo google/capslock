@@ -33,7 +33,8 @@ func B() { C() }
 func C() { println(os.IsExist(nil)) }
 `}
 
-func setup() (pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, cleanup func(), err error) {
+// setup contains common code for loading test packages.
+func setup(filemap map[string]string, pkg string) (pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, cleanup func(), err error) {
 	dir, cleanup, err := analysistest.WriteFiles(filemap)
 	if err != nil {
 		return nil, nil, cleanup, fmt.Errorf("analysistest.WriteFiles: %w", err)
@@ -44,7 +45,7 @@ func setup() (pkgs []*packages.Package, queriedPackages map[*types.Package]struc
 		Dir:  dir,
 		Env:  append(os.Environ(), env...),
 	}
-	pkgs, err = packages.Load(cfg, "testlib")
+	pkgs, err = packages.Load(cfg, pkg)
 	if err != nil {
 		return nil, nil, cleanup, fmt.Errorf("packages.Load: %w", err)
 	}
@@ -53,7 +54,7 @@ func setup() (pkgs []*packages.Package, queriedPackages map[*types.Package]struc
 }
 
 func TestAnalysis(t *testing.T) {
-	pkgs, queriedPackages, cleanup, err := setup()
+	pkgs, queriedPackages, cleanup, err := setup(filemap, "testlib")
 	if cleanup != nil {
 		defer cleanup()
 	}
@@ -92,7 +93,7 @@ func TestAnalysis(t *testing.T) {
 }
 
 func TestGraph(t *testing.T) {
-	pkgs, queriedPackages, cleanup, err := setup()
+	pkgs, queriedPackages, cleanup, err := setup(filemap, "testlib")
 	if cleanup != nil {
 		defer cleanup()
 	}
@@ -144,24 +145,39 @@ func TestGraph(t *testing.T) {
 
 // testClassifier is used for testing that non-default classifiers work
 // correctly.
-type testClassifier struct{}
-
-func (testClassifier) FunctionCategory(pkg string, name string) cpb.Capability {
-	// Only categorize os.IsExist as having a capability.
-	if pkg == "os" && name == "os.IsExist" {
-		return cpb.Capability_CAPABILITY_FILES
-	}
-	return 0
+type testClassifier struct {
+	// functions is a map from {package name, function name} to the capability
+	// the classifier should return.
+	functions map[[2]string]cpb.Capability
+	// ignoredEdges is a set of {caller, callee} pairs denoting callgraph edges
+	// the classifier thinks should be ignored.
+	ignoredEdges map[[2]string]struct{}
 }
-func (testClassifier) IncludeCall(edge *callgraph.Edge) bool {
-	// Exclude calls from A to C.
+
+func (t *testClassifier) FunctionCategory(pkg string, name string) cpb.Capability {
+	return t.functions[[2]string{pkg, name}]
+}
+
+func (t *testClassifier) IncludeCall(edge *callgraph.Edge) bool {
 	caller := edge.Caller.Func.String()
 	callee := edge.Callee.Func.String()
-	return !(caller == "testlib.A" && callee == "testlib.C")
+	_, ignore := t.ignoredEdges[[2]string{caller, callee}]
+	return !ignore
+}
+
+var testClassifier1 = testClassifier{
+	// Only categorize os.IsExist as having a capability.
+	functions: map[[2]string]cpb.Capability{
+		{"os", "os.IsExist"}: cpb.Capability_CAPABILITY_FILES,
+	},
+	// Exclude calls from A to C.
+	ignoredEdges: map[[2]string]struct{}{
+		{"testlib.A", "testlib.C"}: struct{}{},
+	},
 }
 
 func TestAnalysisWithClassifier(t *testing.T) {
-	pkgs, queriedPackages, cleanup, err := setup()
+	pkgs, queriedPackages, cleanup, err := setup(filemap, "testlib")
 	if cleanup != nil {
 		defer cleanup()
 	}
@@ -169,7 +185,7 @@ func TestAnalysisWithClassifier(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 	cil := GetCapabilityInfo(pkgs, queriedPackages, &Config{
-		Classifier:     testClassifier{},
+		Classifier:     &testClassifier1,
 		DisableBuiltin: true,
 	})
 	expected := &cpb.CapabilityInfoList{
@@ -224,7 +240,7 @@ func TestAnalysisWithClassifier(t *testing.T) {
 }
 
 func TestGraphWithClassifier(t *testing.T) {
-	pkgs, queriedPackages, cleanup, err := setup()
+	pkgs, queriedPackages, cleanup, err := setup(filemap, "testlib")
 	if cleanup != nil {
 		defer cleanup()
 	}
@@ -236,7 +252,7 @@ func TestGraphWithClassifier(t *testing.T) {
 	caps := make(map[string][]cpb.Capability)
 	CapabilityGraph(pkgs, queriedPackages,
 		&Config{
-			Classifier:     testClassifier{},
+			Classifier:     &testClassifier1,
 			DisableBuiltin: true,
 		},
 		func(_ bfsStateMap, node *callgraph.Node, _ bfsStateMap) {
