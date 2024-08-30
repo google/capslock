@@ -20,21 +20,44 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func parseCapabilitiesList(cs string) (capabilities map[cpb.Capability]struct{}, negated bool, err error) {
+// CapabilitySet represents a set of Capslock capabilities.
+// A nil *CapabilitySet represents the set of all capabilities.
+type CapabilitySet struct {
+	capabilities map[cpb.Capability]struct{}
+	negated      bool
+}
+
+// Has returns whether c is a member of cs.
+func (cs *CapabilitySet) Has(c cpb.Capability) bool {
+	if cs == nil {
+		return true
+	}
+	_, ok := cs.capabilities[c]
+	return ok != cs.negated
+}
+
+// NewCapabilitySet returns a *CapabilitySet parsed from a string.
+//
+// If cs is empty, a nil *CapabilitySet is returned, which represents the set
+// of all capabilities.  Otherwise, cs should be a comma-separated list of
+// capabilities.  Optionally, all capabilities can be prefixed with '-' to
+// specify the capabilities to exclude from the set.
+func NewCapabilitySet(cs string) (*CapabilitySet, error) {
 	if len(cs) == 0 {
-		return nil, true, nil
+		return nil, nil
 	}
 	out := make(map[cpb.Capability]struct{})
+	negated := false
 	for i, s := range strings.Split(cs, ",") {
 		if len(s) == 0 {
-			return nil, false, fmt.Errorf("empty capability in list: %q", cs)
+			return nil, fmt.Errorf("empty capability in list: %q", cs)
 		}
 		neg := s[0] == '-'
 		if neg {
 			s = s[1:]
 		}
 		if i > 0 && neg != negated {
-			return nil, false, fmt.Errorf("mix of negated and unnegated capabilities specified: %q", cs)
+			return nil, fmt.Errorf("mix of negated and unnegated capabilities specified: %q", cs)
 		}
 		negated = neg
 		c, ok := cpb.Capability_value[s]
@@ -42,18 +65,14 @@ func parseCapabilitiesList(cs string) (capabilities map[cpb.Capability]struct{},
 			c, ok = cpb.Capability_value["CAPABILITY_"+s]
 		}
 		if !ok {
-			return nil, false, fmt.Errorf("unknown capability %q", s)
+			return nil, fmt.Errorf("unknown capability %q", s)
 		}
 		out[cpb.Capability(c)] = struct{}{}
 	}
-	return out, negated, nil
+	return &CapabilitySet{out, negated}, nil
 }
 
 func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) error {
-	capabilities, negated, err := parseCapabilitiesList(config.Capabilities)
-	if err != nil {
-		return err
-	}
 	w := bufio.NewWriterSize(os.Stdout, 1<<20)
 	gb := newGraphBuilder(w, func(v interface{}) string {
 		switch v := v.(type) {
@@ -75,11 +94,8 @@ func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 		gb.Edge(fn, c)
 	}
 	var filter func(c cpb.Capability) bool
-	if len(capabilities) != 0 {
-		filter = func(c cpb.Capability) bool {
-			_, ok := capabilities[c]
-			return ok != negated
-		}
+	if config.CapabilitySet != nil {
+		filter = config.CapabilitySet.Has
 	}
 	CapabilityGraph(pkgs, queriedPackages, config, nil, callEdge, capabilityEdge, filter)
 	gb.Done()

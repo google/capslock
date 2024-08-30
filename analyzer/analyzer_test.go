@@ -294,7 +294,7 @@ func TestGraphWithClassifier(t *testing.T) {
 	}
 }
 
-func TestParseCapabilitiesList(t *testing.T) {
+func TestNewCapabilitySet(t *testing.T) {
 	for _, test := range []struct {
 		list             string
 		wantCapabilities map[cpb.Capability]struct{}
@@ -362,19 +362,25 @@ func TestParseCapabilitiesList(t *testing.T) {
 			wantNegated: false,
 		},
 	} {
-		capabilities, negated, err := parseCapabilitiesList(test.list)
+		cs, err := NewCapabilitySet(test.list)
 		if err != nil {
-			t.Errorf("parseCapabilitiesList(%q): got err == %v, want nil error",
+			t.Errorf("NewCapabilitySet(%q): got err == %v, want nil error",
 				test.list, err)
 			continue
 		}
-		if !reflect.DeepEqual(capabilities, test.wantCapabilities) {
-			t.Errorf("parseCapabilitiesList(%q): got capabilities %v want %v",
-				test.list, capabilities, test.wantCapabilities)
+		if test.wantCapabilities == nil {
+			if cs != nil {
+				t.Errorf("NewCapabilitySet(%q): got non-nil, want nil", test.list)
+			}
+			continue
 		}
-		if negated != test.wantNegated {
-			t.Errorf("parseCapabilitiesList(%q): got negated = %v want %v",
-				test.list, negated, test.wantNegated)
+		if !reflect.DeepEqual(cs.capabilities, test.wantCapabilities) {
+			t.Errorf("NewCapabilitySet(%q): got capabilities %v want %v",
+				test.list, cs.capabilities, test.wantCapabilities)
+		}
+		if cs.negated != test.wantNegated {
+			t.Errorf("NewCapabilitySet(%q): got negated = %v want %v",
+				test.list, cs.negated, test.wantNegated)
 		}
 	}
 	for _, list := range []string{
@@ -390,9 +396,9 @@ func TestParseCapabilitiesList(t *testing.T) {
 		",,",
 		"\x00",
 	} {
-		_, _, err := parseCapabilitiesList(list)
+		_, err := NewCapabilitySet(list)
 		if err == nil {
-			t.Errorf("parseCapabilitiesList(%q): got err == nil, want error", list)
+			t.Errorf("NewCapabilitySet(%q): got err == nil, want error", list)
 		}
 	}
 }

@@ -39,7 +39,7 @@ var (
 	goarch         = flag.String("goarch", "", "GOARCH value to use when loading packages")
 	cpuprofile     = flag.String("cpuprofile", "", "write cpu profile to specified file")
 	memprofile     = flag.String("memprofile", "", "write memory profile to specified file")
-	granularity    = flag.String("granularity", "package",
+	granularity    = flag.String("granularity", "",
 		`the granularity to use for comparisons, either "package" or "function".`)
 )
 
@@ -70,6 +70,14 @@ func run() error {
 	}
 
 	packageNames := strings.Split(*packageList, ",")
+	g, err := analyzer.GranularityFromString(*granularity)
+	if err != nil {
+		return fmt.Errorf("parsing flag -granularity: %w", err)
+	}
+	cs, err := analyzer.NewCapabilitySet(*capabilities)
+	if err != nil {
+		return fmt.Errorf("parsing flag -capabilities: %w", err)
+	}
 	if *disableBuiltin && *customMap == "" {
 		return fmt.Errorf("Error: --disable_builtin only makes sense with a --capability_map file specified")
 	}
@@ -116,8 +124,8 @@ func run() error {
 	err = analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, &analyzer.Config{
 		Classifier:     classifier,
 		DisableBuiltin: *disableBuiltin,
-		Granularity:    *granularity,
-		Capabilities:   *capabilities,
+		Granularity:    g,
+		CapabilitySet:  cs,
 	})
 
 	if *memprofile != "" {
