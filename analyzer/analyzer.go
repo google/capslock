@@ -77,9 +77,15 @@ func GetClassifier(excludeUnanalyzed bool) *interesting.Classifier {
 //     for each combination of capability and function in pkgs.
 //   - For "package" granularity, one CapabilityInfo is returned for each
 //     combination of capability and package in pkgs.
+//   - For "intermediate" granularity, one CapabilityInfo is returned for each
+//     combination of capability and package that is in a path from a function
+//     in pkgs to a function with a capability.
 func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) *cpb.CapabilityInfoList {
 	if config.Granularity == GranularityUnset {
 		config.Granularity = GranularityFunction
+	}
+	if config.Granularity == GranularityIntermediate {
+		return intermediatePackages(pkgs, queriedPackages, config)
 	}
 	type output struct {
 		*cpb.CapabilityInfo
@@ -772,4 +778,85 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 			}
 		}
 	}
+}
+
+// intermediatePackages returns a CapabilityInfo for each unique (P, C) pair
+// where there is a call path from a function in one of the queried packages
+// to a function with capability C, and the call path includes a function in
+// package P.
+func intermediatePackages(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) *cpb.CapabilityInfoList {
+	type packageAndCapability struct {
+		pkg *types.Package
+		cpb.Capability
+	}
+	seen := make(map[packageAndCapability]*cpb.CapabilityInfo)
+
+	// The function CapabilityGraph will call filter for each capability, and
+	// then generate the graph for that capability, calling nodeCallback for
+	// each node in that graph.  We store the capability that was passed to
+	// filter in a variable, so that it is available to nodeCallback.
+	var capability cpb.Capability
+	filter := func(c cpb.Capability) bool {
+		capability = c
+		return config.CapabilitySet.Has(c)
+	}
+
+	nodeCallback := func(queryBFS bfsStateMap, node *callgraph.Node, capabilityBFS bfsStateMap) {
+		// We have found node in a BFS of the callgraph starting from functions in
+		// pkgs, and in a BFS of the callgraph searching backwards from functions
+		// with capabilities.  So we can construct a path from one to the other
+		// through node.
+		pkg := nodeToPackage(node)
+		if pkg == nil {
+			// This node represents some kind of wrapper function that we don't need
+			// to consider.
+			return
+		}
+		pc := packageAndCapability{pkg, capability}
+		if _, ok := seen[pc]; ok {
+			// We have already seen this (package, capability) pair.
+			return
+		}
+		ci := cpb.CapabilityInfo{
+			Capability:  capability.Enum(),
+			PackageDir:  proto.String(pkg.Path()),
+			PackageName: proto.String(pkg.Name()),
+		}
+		// Add ci.Path entries for the part of the path leading from a function in
+		// pkgs to node, including node itself.
+		for v := node; v != nil; {
+			e := queryBFS[v].edge
+			addFunction(&ci.Path, v, e)
+			if e == nil {
+				break
+			}
+			v = e.Caller
+		}
+		// Reverse the path we have so far, since we visited its nodes in reverse
+		// order.
+		slices.Reverse(ci.Path)
+		// Add ci.Path entries for the part of the path leading from node to a
+		// function with a capability.
+		for v := node; v != nil; {
+			e := capabilityBFS[v].edge
+			if e == nil {
+				break
+			}
+			v = e.Callee
+			addFunction(&ci.Path, v, e)
+		}
+		seen[pc] = &ci
+	}
+	CapabilityGraph(pkgs, queriedPackages, config, nodeCallback, nil, nil, filter)
+	cis := make([]*cpb.CapabilityInfo, 0, len(seen))
+	for _, ci := range seen {
+		cis = append(cis, ci)
+	}
+	slices.SortFunc(cis, func(a, b *cpb.CapabilityInfo) int {
+		if x, y := a.GetCapability(), b.GetCapability(); x != y {
+			return int(x) - int(y)
+		}
+		return strings.Compare(a.GetPackageDir(), b.GetPackageDir())
+	})
+	return &cpb.CapabilityInfoList{CapabilityInfo: cis}
 }
