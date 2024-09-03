@@ -9,6 +9,7 @@ package analyzer
 import (
 	"go/ast"
 	"go/types"
+	"slices"
 	"sort"
 	"strings"
 
@@ -65,13 +66,21 @@ func GetClassifier(excludeUnanalyzed bool) *interesting.Classifier {
 	return classifier
 }
 
-// GetCapabilityInfo analyzes the packages in pkgs.  For each function in those
-// packages which have a path in the callgraph to an "interesting" function
-// (see the "interesting" package), we log details of the capability usage.
+// GetCapabilityInfo analyzes the packages in pkgs.  It finds functions in
+// those packages that have a path in the callgraph to a function with a
+// capability.
 //
-// One CapabilityInfo is returned for every (function, capability) pair, with
-// one example path in the callgraph that demonstrates that capability.
+// GetCapabilityInfo does not return every possible path (see the function
+// CapabilityGraph for a way to get all paths).  Which entries are returned
+// depends on the value of Config.Granularity:
+//   - For "function" granularity (the default), one CapabilityInfo is returned
+//     for each combination of capability and function in pkgs.
+//   - For "package" granularity, one CapabilityInfo is returned for each
+//     combination of capability and package in pkgs.
 func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) *cpb.CapabilityInfoList {
+	if config.Granularity == GranularityUnset {
+		config.Granularity = GranularityFunction
+	}
 	type output struct {
 		*cpb.CapabilityInfo
 		*ssa.Function // used for sorting
@@ -117,6 +126,28 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 		}
 		return funcCompare(caps[i].Function, caps[j].Function) < 0
 	})
+	if config.Granularity == GranularityPackage {
+		// Keep only the first entry in the sorted list for each (capability, package) pair.
+		type cp struct {
+			cpb.Capability
+			*ssa.Package
+		}
+		seen := make(map[cp]struct{})
+		// del returns true if the capability and package of o have been seen before.
+		del := func(o output) bool {
+			var pkg *ssa.Package
+			if o.Function != nil {
+				pkg = o.Function.Package()
+			}
+			cp := cp{o.CapabilityInfo.GetCapability(), pkg}
+			if _, ok := seen[cp]; ok {
+				return true
+			}
+			seen[cp] = struct{}{}
+			return false
+		}
+		caps = slices.DeleteFunc(caps, del)
+	}
 	cil := &cpb.CapabilityInfoList{
 		CapabilityInfo: make([]*cpb.CapabilityInfo, len(caps)),
 		ModuleInfo:     collectModuleInfo(pkgs),
