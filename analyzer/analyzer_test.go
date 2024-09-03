@@ -28,6 +28,7 @@ var filemap = map[string]string{"testlib/foo.go": `package testlib
 import "os"
 
 func Foo() { println(os.Getpid()) }
+func Bar() { println(os.Getpid()) }
 func A() { B(); C() }
 func B() { C() }
 func C() { println(os.IsExist(nil)) }
@@ -67,6 +68,15 @@ func TestAnalysis(t *testing.T) {
 	})
 	expected := &cpb.CapabilityInfoList{
 		CapabilityInfo: []*cpb.CapabilityInfo{{
+			PackageName: proto.String("testlib"),
+			Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+			Path: []*cpb.Function{
+				&cpb.Function{Name: proto.String("testlib.Bar"), Package: proto.String("testlib")},
+				&cpb.Function{Name: proto.String("os.Getpid"), Package: proto.String("os")},
+			},
+			PackageDir:     proto.String("testlib"),
+			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
+		}, {
 			PackageName: proto.String("testlib"),
 			Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
 			Path: []*cpb.Function{
@@ -121,10 +131,12 @@ func TestGraph(t *testing.T) {
 		nil)
 	expectedNodes := map[string]struct{}{
 		"testlib.Foo": {},
+		"testlib.Bar": {},
 		"os.Getpid":   {},
 	}
 	expectedCalls := map[[2]string]struct{}{
 		{"testlib.Foo", "os.Getpid"}: {},
+		{"testlib.Bar", "os.Getpid"}: {},
 	}
 	expectedCaps := map[string][]cpb.Capability{
 		"os.Getpid": {cpb.Capability_CAPABILITY_READ_SYSTEM_STATE},
@@ -291,6 +303,46 @@ func TestGraphWithClassifier(t *testing.T) {
 	if !reflect.DeepEqual(caps, expectedCaps) {
 		t.Errorf("CapabilityGraph(%v): got capabilities %v want %v",
 			filemap, caps, expectedCaps)
+	}
+}
+
+func TestAnalysisPackageGranularity(t *testing.T) {
+	pkgs, queriedPackages, cleanup, err := setup(filemap, "testlib")
+	if cleanup != nil {
+		defer cleanup()
+	}
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	cil := GetCapabilityInfo(pkgs, queriedPackages, &Config{
+		Classifier:     interesting.DefaultClassifier(),
+		DisableBuiltin: false,
+		Granularity:    GranularityPackage,
+	})
+	expected := &cpb.CapabilityInfoList{
+		CapabilityInfo: []*cpb.CapabilityInfo{{
+			PackageName: proto.String("testlib"),
+			Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+			Path: []*cpb.Function{
+				&cpb.Function{Name: proto.String("testlib.Bar"), Package: proto.String("testlib")},
+				&cpb.Function{Name: proto.String("os.Getpid"), Package: proto.String("os")},
+			},
+			PackageDir:     proto.String("testlib"),
+			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
+		}},
+	}
+	opts := []cmp.Option{
+		protocmp.Transform(),
+		protocmp.IgnoreFields(&cpb.CapabilityInfoList{}, "package_info"),
+		protocmp.IgnoreFields(&cpb.CapabilityInfo{}, "dep_path"),
+		protocmp.IgnoreFields(&cpb.Function{}, "site"),
+		protocmp.IgnoreFields(&cpb.Function_Site{}, "filename"),
+		protocmp.IgnoreFields(&cpb.Function_Site{}, "line"),
+		protocmp.IgnoreFields(&cpb.Function_Site{}, "column"),
+	}
+	if diff := cmp.Diff(expected, cil, opts...); diff != "" {
+		t.Errorf("GetCapabilityInfo(%v): got %v, want %v; diff %s",
+			filemap, cil, expected, diff)
 	}
 }
 
