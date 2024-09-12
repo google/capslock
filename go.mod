@@ -1,7 +1,6 @@
 module github.com/google/capslock
 
-go 1.21
-toolchain go1.22.5
+go 1.22.0
 
 require (
 	github.com/fatih/color v1.17.0
