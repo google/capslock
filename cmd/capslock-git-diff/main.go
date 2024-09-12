@@ -61,14 +61,23 @@ func vlog(format string, a ...any) {
 
 // run executes the specified command and writes its stdout to w.
 func run(w io.Writer, command string, args ...string) error {
-	vlog("running %q with args %q", command, args)
+	vlog("running %s with args %q", command, args)
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = w
+	var stderr bytes.Buffer
 	if *verbose {
 		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stderr = &stderr
 	}
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running %q with args %q: %w", command, args, err)
+		if !*verbose {
+			// We didn't output the command line, or the command's stderr earlier.
+			// Since it failed, we output them now.
+			log.Printf("running %s with args %q:", command, args)
+			os.Stderr.Write(stderr.Bytes())
+		}
+		return fmt.Errorf("%s: %w", command, err)
 	}
 	return nil
 }
