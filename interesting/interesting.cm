@@ -38,6 +38,14 @@ func go/internal/srcimporter.setUsesCgo CAPABILITY_SAFE
 func internal/abi.FuncPCABI0 CAPABILITY_SAFE
 func internal/abi.FuncPCABIInternal CAPABILITY_SAFE
 
+func internal/chacha8rand.Marshal CAPABILITY_SAFE
+func internal/chacha8rand.Unmarshal CAPABILITY_SAFE
+func (*internal/chacha8rand.State).Init CAPABILITY_SAFE
+func (*internal/chacha8rand.State).Init64 CAPABILITY_SAFE
+func (*internal/chacha8rand.State).Next CAPABILITY_SAFE
+func (*internal/chacha8rand.State).Refill CAPABILITY_SAFE
+func (*internal/chacha8rand.State).Reseed CAPABILITY_SAFE
+
 func internal/godebug.init CAPABILITY_SAFE
 func (*internal/godebug.Setting).register CAPABILITY_SAFE
 func (*internal/godebug.Setting).Value CAPABILITY_SAFE
@@ -108,10 +116,21 @@ func net.ResolveUnixAddr CAPABILITY_NETWORK
 func net.SplitHostPort CAPABILITY_SAFE
 func net.init CAPABILITY_SAFE
 func (*net.AddrError).Error CAPABILITY_SAFE
+func (*net.AddrError).Temporary CAPABILITY_SAFE
+func (*net.AddrError).Timeout CAPABILITY_SAFE
+func (*net.DNSConfigError).Error CAPABILITY_UNSPECIFIED
+func (*net.DNSConfigError).Temporary CAPABILITY_SAFE
+func (*net.DNSConfigError).Timeout CAPABILITY_SAFE
 func (*net.DNSConfigError).Unwrap CAPABILITY_SAFE
 func (*net.DNSError).Error CAPABILITY_SAFE
+func (*net.DNSError).Temporary CAPABILITY_SAFE
+func (*net.DNSError).Timeout CAPABILITY_SAFE
+func (*net.DNSError).Unwrap CAPABILITY_SAFE
 func (net.Flags).String CAPABILITY_SAFE
 func (net.HardwareAddr).String CAPABILITY_SAFE
+func (net.InvalidAddrError).Error CAPABILITY_SAFE
+func (net.InvalidAddrError).Temporary CAPABILITY_SAFE
+func (net.InvalidAddrError).Timeout CAPABILITY_SAFE
 func (net.IP).DefaultMask CAPABILITY_SAFE
 func (net.IP).Equal CAPABILITY_SAFE
 func (net.IP).IsGlobalUnicast CAPABILITY_SAFE
@@ -135,11 +154,13 @@ func (net.IPMask).String CAPABILITY_SAFE
 func (*net.IPNet).Contains CAPABILITY_SAFE
 func (*net.IPNet).Network CAPABILITY_SAFE
 func (*net.IPNet).String CAPABILITY_SAFE
-func (*net.OpError).Error CAPABILITY_SAFE
-func (*net.OpError).Temporary CAPABILITY_SAFE
-func (*net.OpError).Timeout CAPABILITY_SAFE
+func (*net.OpError).Error CAPABILITY_UNSPECIFIED
+func (*net.OpError).Temporary CAPABILITY_UNSPECIFIED
+func (*net.OpError).Timeout CAPABILITY_UNSPECIFIED
 func (*net.OpError).Unwrap CAPABILITY_SAFE
 func (*net.ParseError).Error CAPABILITY_SAFE
+func (*net.ParseError).Temporary CAPABILITY_SAFE
+func (*net.ParseError).Timeout CAPABILITY_SAFE
 func (*net.TCPAddr).AddrPort CAPABILITY_SAFE
 func (*net.TCPAddr).Network CAPABILITY_SAFE
 func (*net.TCPAddr).String CAPABILITY_SAFE
@@ -147,13 +168,19 @@ func (*net.UDPAddr).String CAPABILITY_SAFE
 func (*net.UnixAddr).String CAPABILITY_SAFE
 func (net.UnknownNetworkError).Error CAPABILITY_SAFE
 func (net.UnknownNetworkError).Temporary CAPABILITY_SAFE
+func (net.UnknownNetworkError).Timeout CAPABILITY_SAFE
 func (net.addrinfoErrno).Error CAPABILITY_SAFE
 func (net.canceledError).Error CAPABILITY_SAFE
 func (net.canceledError).Is CAPABILITY_SAFE
+func (*net.notFoundError).Error CAPABILITY_SAFE
 func (*net.onlyValuesCtx).Value CAPABILITY_SAFE
+func (*net.temporaryError).Error CAPABILITY_SAFE
+func (*net.temporaryError).Temporary CAPABILITY_SAFE
+func (*net.temporaryError).Timeout CAPABILITY_SAFE
 func (*net.timeoutError).Error CAPABILITY_SAFE
 func (*net.timeoutError).Is CAPABILITY_SAFE
 func (*net.timeoutError).Temporary CAPABILITY_SAFE
+func (*net.timeoutError).Timeout CAPABILITY_SAFE
 
 func net/http.init CAPABILITY_SAFE
 func net/http.CanonicalHeaderKey CAPABILITY_SAFE
@@ -163,6 +190,7 @@ func net/http.ParseHTTPVersion CAPABILITY_SAFE
 func net/http.ParseSetCookie CAPABILITY_SAFE
 func net/http.ParseTime CAPABILITY_SAFE
 func net/http.StatusText CAPABILITY_SAFE
+func net/http.isNotToken CAPABILITY_SAFE
 func (net/http.ConnState).String CAPABILITY_SAFE
 func (*net/http.Cookie).String CAPABILITY_SAFE
 func (*net/http.Cookie).Valid CAPABILITY_SAFE
@@ -302,6 +330,7 @@ func (*os.unixDirent).Name CAPABILITY_FILES
 
 func os/exec.LookPath CAPABILITY_FILES
 func os/exec.init CAPABILITY_SAFE
+func (*os/exec.Cmd).String CAPABILITY_SAFE
 func (*os/exec.Error).Error CAPABILITY_SAFE
 func (*os/exec.Error).Unwrap CAPABILITY_SAFE
 func (*os/exec.ExitError).Error CAPABILITY_SAFE
@@ -485,6 +514,8 @@ func (*runtime.Func).Name CAPABILITY_SAFE
 func (*runtime.MemProfileRecord).InUseBytes CAPABILITY_SAFE
 func (*runtime.MemProfileRecord).InUseObjects CAPABILITY_SAFE
 func (*runtime.MemProfileRecord).Stack CAPABILITY_SAFE
+func (*runtime.PanicNilError).Error CAPABILITY_SAFE
+func (*runtime.PanicNilError).RuntimeError CAPABILITY_SAFE
 func (*runtime.StackRecord).Stack CAPABILITY_SAFE
 func (*runtime.TypeAssertionError).Error CAPABILITY_SAFE
 func (*runtime.TypeAssertionError).RuntimeError CAPABILITY_SAFE
@@ -508,6 +539,7 @@ func runtime/debug.Stack CAPABILITY_SAFE
 func runtime/debug.WriteHeapDump CAPABILITY_FILES
 func runtime/debug.init CAPABILITY_SAFE
 func runtime/metrics.Read CAPABILITY_RUNTIME
+func (*runtime/pprof.labelMap).String CAPABILITY_SAFE
 func runtime/trace.userLog CAPABILITY_SAFE
 func runtime/trace.userRegion CAPABILITY_SAFE
 func runtime/trace.userTaskCreate CAPABILITY_SAFE
@@ -666,6 +698,10 @@ func golang.org/x/crypto/sha3.xorIn CAPABILITY_SAFE
 func golang.org/x/crypto/sha3.xorInUnaligned CAPABILITY_SAFE
 func (*golang.org/x/crypto/sha3.storageBuf).asBytes CAPABILITY_SAFE
 
+func google.golang.org/protobuf/internal/detrand.binaryHash CAPABILITY_SAFE
+func google.golang.org/protobuf/reflect/protoreflect.typeOf CAPABILITY_SAFE
+func google.golang.org/protobuf/reflect/protoregistry.init$1 CAPABILITY_SAFE
+
 ignore_edge (*golang.org/x/image/draw.kernelScaler).Scale (*sync.Pool).Get
 ignore_edge golang.org/x/image/font/sfnt.makeCachedClassLookupFormat2$1 sort.Search
 ignore_edge golang.org/x/image/font/sfnt.makeCachedCoverageRange$1 sort.Search
@@ -769,6 +805,7 @@ package sync/atomic CAPABILITY_SAFE
 package testing CAPABILITY_SAFE
 package time CAPABILITY_SAFE
 package time/tzdata CAPABILITY_SAFE
+package unique CAPABILITY_SAFE
 package vendor/golang.org/x/crypto/chacha20poly1305 CAPABILITY_SAFE
 package vendor/golang.org/x/crypto/internal/poly1305 CAPABILITY_SAFE
 package vendor/golang.org/x/sys/cpu CAPABILITY_SAFE
