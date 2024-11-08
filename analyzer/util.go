@@ -421,6 +421,10 @@ func containsReflectValue(t types.Type) bool {
 			return false
 		}
 		seen[t] = struct{}{}
+		// If the unaliased type is different, use that.
+		if u := types.Unalias(t); u != t {
+			return rec(u)
+		}
 		// If the underlying type is different, use that.
 		if u := t.Underlying(); !types.Identical(t, u) {
 			return rec(u)
