@@ -12,6 +12,7 @@ func crypto/cipher.xorBytesSSE2 CAPABILITY_SAFE
 func crypto/ecdh.init CAPABILITY_SAFE
 func crypto/ecdsa.init CAPABILITY_SAFE
 func crypto/internal/boring.init CAPABILITY_SAFE
+func crypto/internal/fips.CAST CAPABILITY_UNSPECIFIED
 func crypto/internal/nistec.init CAPABILITY_SAFE
 func crypto/md5.init CAPABILITY_SAFE
 func crypto/rand.Read CAPABILITY_SAFE
@@ -228,6 +229,8 @@ func os.Chmod CAPABILITY_FILES
 func os.Chown CAPABILITY_FILES
 func os.Chtimes CAPABILITY_FILES
 func os.Clearenv CAPABILITY_MODIFY_SYSTEM_STATE
+func os.CopyFS CAPABILITY_FILES
+func os.CopyFS$1 CAPABILITY_FILES
 func os.Create CAPABILITY_FILES
 func os.CreateTemp CAPABILITY_FILES
 func os.DirFS CAPABILITY_FILES
@@ -236,6 +239,7 @@ func os.Executable CAPABILITY_READ_SYSTEM_STATE
 func os.Exit CAPABILITY_SAFE
 func os.Expand CAPABILITY_UNSPECIFIED # calls its second parameter
 func os.ExpandEnv CAPABILITY_READ_SYSTEM_STATE
+func os.FindProcess CAPABILITY_READ_SYSTEM_STATE
 func os.Getegid CAPABILITY_READ_SYSTEM_STATE
 func os.Getenv CAPABILITY_READ_SYSTEM_STATE
 func os.Geteuid CAPABILITY_READ_SYSTEM_STATE
@@ -272,6 +276,7 @@ func os.RemoveAll CAPABILITY_FILES
 func os.Rename CAPABILITY_FILES
 func os.SameFile CAPABILITY_FILES
 func os.Setenv CAPABILITY_MODIFY_SYSTEM_STATE
+func os.StartProcess CAPABILITY_EXEC
 func os.Stat CAPABILITY_FILES
 func os.Symlink CAPABILITY_FILES
 func os.TempDir CAPABILITY_READ_SYSTEM_STATE
@@ -326,7 +331,14 @@ func (*os.fileStat).Mode CAPABILITY_FILES
 func (*os.fileStat).Name CAPABILITY_FILES
 func (*os.fileStat).Size CAPABILITY_FILES
 func (*os.fileStat).Sys CAPABILITY_FILES
+func (*os.unixDirent).Info CAPABILITY_FILES
+func (*os.unixDirent).IsDir CAPABILITY_FILES
 func (*os.unixDirent).Name CAPABILITY_FILES
+func (*os.unixDirent).Type CAPABILITY_FILES
+func (os.dirFS).Open CAPABILITY_FILES
+func (os.dirFS).ReadDir CAPABILITY_FILES
+func (os.dirFS).ReadFile CAPABILITY_FILES
+func (os.dirFS).Stat CAPABILITY_FILES
 
 func os/exec.LookPath CAPABILITY_FILES
 func os/exec.init CAPABILITY_SAFE
@@ -339,12 +351,19 @@ func (*os/exec.prefixSuffixSaver).Write CAPABILITY_SAFE
 func (os/exec.wrappedError).Error CAPABILITY_UNSPECIFIED
 func (os/exec.wrappedError).Unwrap CAPABILITY_SAFE
 
+func os/signal.Ignored CAPABILITY_READ_SYSTEM_STATE
+
 func os/user.Current CAPABILITY_READ_SYSTEM_STATE
 func os/user.Lookup CAPABILITY_READ_SYSTEM_STATE
 func os/user.LookupGroup CAPABILITY_READ_SYSTEM_STATE
 func os/user.LookupGroupId CAPABILITY_READ_SYSTEM_STATE
 func os/user.LookupId CAPABILITY_READ_SYSTEM_STATE
 func os/user.init CAPABILITY_SAFE
+func (os/user.UnknownGroupError).Error CAPABILITY_SAFE
+func (os/user.UnknownGroupIdError).Error CAPABILITY_SAFE
+func (os/user.UnknownUserError).Error CAPABILITY_SAFE
+func (os/user.UnknownUserIdError).Error CAPABILITY_SAFE
+func (*os/user.User).GroupIds CAPABILITY_READ_SYSTEM_STATE
 
 func plugin.Open CAPABILITY_EXEC
 
@@ -648,6 +667,7 @@ func (syscall.Errno).Is CAPABILITY_SAFE
 func (syscall.Errno).Temporary CAPABILITY_SAFE
 func (syscall.Errno).Timeout CAPABILITY_SAFE
 func (syscall.Signal).String CAPABILITY_SAFE
+func (*syscall.Timespec).Nano CAPABILITY_SAFE
 func (*syscall.Timespec).Unix CAPABILITY_SAFE
 func (syscall.WaitStatus).Continued CAPABILITY_SAFE
 func (syscall.WaitStatus).CoreDump CAPABILITY_SAFE
@@ -782,6 +802,10 @@ package crypto/aes CAPABILITY_SAFE
 package crypto/internal/boring/bcache CAPABILITY_SAFE
 package crypto/internal/bigmod CAPABILITY_SAFE
 package crypto/internal/boring/sig CAPABILITY_SAFE
+package crypto/internal/fips CAPABILITY_SAFE
+package crypto/internal/fips/sha256 CAPABILITY_SAFE
+package crypto/internal/fips/sha3 CAPABILITY_SAFE
+package crypto/internal/fips/sha512 CAPABILITY_SAFE
 package crypto/internal/edwards25519/field CAPABILITY_SAFE
 package crypto/internal/nistec CAPABILITY_SAFE
 package crypto/md5 CAPABILITY_SAFE
