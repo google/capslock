@@ -54,6 +54,8 @@ func (*internal/godebug.Setting).Value CAPABILITY_SAFE
 func (*internal/bisect.atomicPointerDedup).CompareAndSwap CAPABILITY_SAFE
 func (*internal/bisect.atomicPointerDedup).Load CAPABILITY_SAFE
 
+func internal/syscall/windows/registry.init CAPABILITY_SAFE
+
 func (*index/suffixarray.Index).lookupAll CAPABILITY_SAFE
 
 func log.Print CAPABILITY_SAFE
@@ -352,6 +354,7 @@ func (os/exec.wrappedError).Error CAPABILITY_UNSPECIFIED
 func (os/exec.wrappedError).Unwrap CAPABILITY_SAFE
 
 func os/signal.Ignored CAPABILITY_READ_SYSTEM_STATE
+func os/signal.init CAPABILITY_SAFE
 
 func os/user.Current CAPABILITY_READ_SYSTEM_STATE
 func os/user.Lookup CAPABILITY_READ_SYSTEM_STATE
@@ -558,6 +561,7 @@ func runtime/debug.Stack CAPABILITY_SAFE
 func runtime/debug.WriteHeapDump CAPABILITY_FILES
 func runtime/debug.init CAPABILITY_SAFE
 func runtime/metrics.Read CAPABILITY_RUNTIME
+func runtime/pprof.init CAPABILITY_SAFE
 func (*runtime/pprof.labelMap).String CAPABILITY_SAFE
 func runtime/trace.userLog CAPABILITY_SAFE
 func runtime/trace.userRegion CAPABILITY_SAFE
