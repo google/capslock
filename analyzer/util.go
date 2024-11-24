@@ -16,7 +16,6 @@ import (
 
 	cpb "github.com/google/capslock/proto"
 	"golang.org/x/tools/go/callgraph"
-	"golang.org/x/tools/go/callgraph/cha"
 	"golang.org/x/tools/go/callgraph/vta"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
@@ -205,9 +204,8 @@ func buildGraph(pkgs []*packages.Package, populateSyntax bool) (*callgraph.Graph
 	}
 	ssaProg, _ := ssautil.AllPackages(pkgs, ssaBuilderMode)
 	ssaProg.Build()
-	graph := cha.CallGraph(ssaProg)
 	allFunctions := ssautil.AllFunctions(ssaProg)
-	graph = vta.CallGraph(allFunctions, graph)
+	graph := vta.CallGraph(allFunctions, nil)
 	return graph, ssaProg, allFunctions
 }
 
