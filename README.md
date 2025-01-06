@@ -49,3 +49,7 @@ See the [contributing](CONTRIBUTING.md) file.
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=google/capslock&type=Date)](https://star-history.com/#google/capslock&Date)
+
+## Mentions
+
+[![go-recipes](https://raw.githubusercontent.com/nikolaydubina/go-recipes/main/badge.svg?raw=true)](https://github.com/nikolaydubina/go-recipes)
