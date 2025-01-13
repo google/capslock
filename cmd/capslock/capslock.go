@@ -43,6 +43,7 @@ var (
 	memprofile     = flag.String("memprofile", "", "write memory profile to specified file")
 	granularity    = flag.String("granularity", "",
 		`the granularity to use for comparisons, either "package" or "function".`)
+	forceLocalModule = flag.Bool("force_local_module", false, "if the requested packages cannot be loaded in the current workspace, return an error immediately, instead of trying to load them in a temporary module")
 )
 
 func main() {
@@ -107,7 +108,7 @@ func run() error {
 		GOARCH:    *goarch,
 	}
 	pkgs, listFailed, failedPackage, err := loadPackages(packageNames, loadConfig)
-	if listFailed || len(pkgs) == 0 {
+	if (listFailed || len(pkgs) == 0) && !*forceLocalModule {
 		// Either:
 		// - `go list` returned an error for one of the packages, perhaps because
 		//   it is not a dependency of the current workspace; or
@@ -116,6 +117,9 @@ func run() error {
 		//
 		// Here we try again in a temporary module, in which we call `go get` for
 		// each package.
+		//
+		// -force_local_module disables this behavior, and returns an error
+		// instead.
 		if listFailed {
 			fmt.Fprintf(os.Stderr, "Couldn't load package %q in the current module.", failedPackage)
 		} else {
