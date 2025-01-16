@@ -6,7 +6,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/google/go-cmp v0.6.0
 	golang.org/x/tools v0.29.0
-	google.golang.org/protobuf v1.36.2
+	google.golang.org/protobuf v1.36.3
 )
 
 require (
