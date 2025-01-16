@@ -34,6 +34,8 @@ type Config struct {
 	// CapabilitySet is the set of capabilities to use for graph output mode.
 	// If CapabilitySet is nil, all capabilities are used.
 	CapabilitySet *CapabilitySet
+	// OmitPaths disables output of example call paths.
+	OmitPaths bool
 }
 
 // Classifier is an interface for types that help map code features to
@@ -101,7 +103,9 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 			var ctype cpb.CapabilityType
 			var incomingEdge *callgraph.Edge
 			for v != nil {
-				addFunction(&c.Path, v, incomingEdge)
+				if !config.OmitPaths || (i == 0 && config.Granularity == GranularityFunction) {
+					addFunction(&c.Path, v, incomingEdge)
+				}
 				if i == 0 {
 					n = v.Func.Package().Pkg.Path()
 					ctype = cpb.CapabilityType_CAPABILITY_TYPE_DIRECT
@@ -116,14 +120,16 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 				incomingEdge, v = nodes[v].edge, nodes[v].next()
 			}
 			c.CapabilityType = &ctype
-			var b strings.Builder
-			for i, p := range c.Path {
-				if i != 0 {
-					b.WriteByte(' ')
+			if !config.OmitPaths {
+				var b strings.Builder
+				for i, p := range c.Path {
+					if i != 0 {
+						b.WriteByte(' ')
+					}
+					b.WriteString(p.GetName())
 				}
-				b.WriteString(p.GetName())
+				c.DepPath = proto.String(b.String())
 			}
-			c.DepPath = proto.String(b.String())
 			caps = append(caps, output{&c, fn})
 		}, config)
 	sort.Slice(caps, func(i, j int) bool {
@@ -193,7 +199,9 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 			isDirect := true
 			e := []*cpb.Function{}
 			for v != nil {
-				addFunction(&e, v, incomingEdge)
+				if !config.OmitPaths || i == 0 {
+					addFunction(&e, v, incomingEdge)
+				}
 				if i == 0 {
 					n = v.Func.Package().Pkg.Path()
 				}
@@ -822,28 +830,30 @@ func intermediatePackages(pkgs []*packages.Package, queriedPackages map[*types.P
 			PackageDir:  proto.String(pkg.Path()),
 			PackageName: proto.String(pkg.Name()),
 		}
-		// Add ci.Path entries for the part of the path leading from a function in
-		// pkgs to node, including node itself.
-		for v := node; v != nil; {
-			e := queryBFS[v].edge
-			addFunction(&ci.Path, v, e)
-			if e == nil {
-				break
+		if !config.OmitPaths {
+			// Add ci.Path entries for the part of the path leading from a function in
+			// pkgs to node, including node itself.
+			for v := node; v != nil; {
+				e := queryBFS[v].edge
+				addFunction(&ci.Path, v, e)
+				if e == nil {
+					break
+				}
+				v = e.Caller
 			}
-			v = e.Caller
-		}
-		// Reverse the path we have so far, since we visited its nodes in reverse
-		// order.
-		slices.Reverse(ci.Path)
-		// Add ci.Path entries for the part of the path leading from node to a
-		// function with a capability.
-		for v := node; v != nil; {
-			e := capabilityBFS[v].edge
-			if e == nil {
-				break
+			// Reverse the path we have so far, since we visited its nodes in reverse
+			// order.
+			slices.Reverse(ci.Path)
+			// Add ci.Path entries for the part of the path leading from node to a
+			// function with a capability.
+			for v := node; v != nil; {
+				e := capabilityBFS[v].edge
+				if e == nil {
+					break
+				}
+				v = e.Callee
+				addFunction(&ci.Path, v, e)
 			}
-			v = e.Callee
-			addFunction(&ci.Path, v, e)
 		}
 		seen[pc] = &ci
 	}

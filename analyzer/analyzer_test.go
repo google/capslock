@@ -55,6 +55,11 @@ func setup(filemap map[string]string, pkg string) (pkgs []*packages.Package, que
 }
 
 func TestAnalysis(t *testing.T) {
+	t.Run("include paths", func(t *testing.T) { testAnalysis(t, false) })
+	t.Run("omit paths", func(t *testing.T) { testAnalysis(t, true) })
+}
+
+func testAnalysis(t *testing.T, omitPaths bool) {
 	pkgs, queriedPackages, cleanup, err := setup(filemap, "testlib")
 	if cleanup != nil {
 		defer cleanup()
@@ -65,11 +70,13 @@ func TestAnalysis(t *testing.T) {
 	cil := GetCapabilityInfo(pkgs, queriedPackages, &Config{
 		Classifier:     interesting.DefaultClassifier(),
 		DisableBuiltin: false,
+		OmitPaths:      omitPaths,
 	})
 	expected := &cpb.CapabilityInfoList{
 		CapabilityInfo: []*cpb.CapabilityInfo{{
 			PackageName: proto.String("testlib"),
 			Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+			DepPath:     proto.String("testlib.Bar os.Getpid"),
 			Path: []*cpb.Function{
 				&cpb.Function{Name: proto.String("testlib.Bar"), Package: proto.String("testlib")},
 				&cpb.Function{Name: proto.String("os.Getpid"), Package: proto.String("os")},
@@ -79,6 +86,7 @@ func TestAnalysis(t *testing.T) {
 		}, {
 			PackageName: proto.String("testlib"),
 			Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+			DepPath:     proto.String("testlib.Foo os.Getpid"),
 			Path: []*cpb.Function{
 				&cpb.Function{Name: proto.String("testlib.Foo"), Package: proto.String("testlib")},
 				&cpb.Function{Name: proto.String("os.Getpid"), Package: proto.String("os")},
@@ -87,10 +95,15 @@ func TestAnalysis(t *testing.T) {
 			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
 		}},
 	}
+	if omitPaths {
+		for _, ci := range expected.CapabilityInfo {
+			ci.DepPath = nil
+			ci.Path = ci.Path[:1]
+		}
+	}
 	opts := []cmp.Option{
 		protocmp.Transform(),
 		protocmp.IgnoreFields(&cpb.CapabilityInfoList{}, "package_info"),
-		protocmp.IgnoreFields(&cpb.CapabilityInfo{}, "dep_path"),
 		protocmp.IgnoreFields(&cpb.Function{}, "site"),
 		protocmp.IgnoreFields(&cpb.Function_Site{}, "filename"),
 		protocmp.IgnoreFields(&cpb.Function_Site{}, "line"),
