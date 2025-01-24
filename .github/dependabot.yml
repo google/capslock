@@ -1,13 +1,26 @@
 version: 2
 updates:
   # Maintain dependencies for go
-  - package-ecosystem: "gomod"
+  - package-ecosystem: gomod
     directory: "/"
-    open-pull-requests-limit: 20
     schedule:
-      interval: "daily"
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      go-minor-updates:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: github-actions
-    directory: /
+    directory: "/"
     schedule:
-      interval: daily
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      actions-minor-updates:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
