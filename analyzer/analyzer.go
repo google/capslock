@@ -540,7 +540,7 @@ func getExtraNodesByCapability(graph *callgraph.Graph, allFunctions map[*ssa.Fun
 					}
 					// dest.Type should be a types.Pointer pointing to the type of the
 					// value that is copied by this instruction.
-					typ, ok := dest.Type().(*types.Pointer)
+					typ, ok := types.Unalias(dest.Type()).(*types.Pointer)
 					if !ok {
 						continue
 					}

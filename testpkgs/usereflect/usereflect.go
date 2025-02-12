@@ -298,6 +298,32 @@ func CopyValueContainingStruct() {
 	_ = v
 }
 
+type rvsalias = rvs
+
+// CopyValueContainingStructAlias copies a struct with an aliased type
+// containing a reflect.Value.
+func CopyValueContainingStructAlias() {
+	var f func() int
+	var g uintptr
+	v := rvsalias{42, reflect.ValueOf(f), 42}
+	w := rvsalias{42, reflect.ValueOf(g), 42}
+	v = w
+	_ = v
+}
+
+type rvspointeralias = *rvs
+
+var (
+	aliasedStructPointer1 rvspointeralias = &globalValueStruct1
+	aliasedStructPointer2 rvspointeralias = &globalValueStruct2
+)
+
+// CopyValueContainingStructAliasViaPointer copies a struct containing a
+// reflect.Value via an aliased pointer type.
+func CopyValueContainingStructAliasViaPointer() {
+	*aliasedStructPointer1 = *aliasedStructPointer2
+}
+
 // CopyValueContainingStructViaPointer copies a struct containing a reflect.Value via a pointer.
 func CopyValueContainingStructViaPointer() {
 	var f func() int
@@ -307,6 +333,25 @@ func CopyValueContainingStructViaPointer() {
 	p := &v
 	*p = w
 	_ = v
+}
+
+type (
+	rvsarray       = [3]rvs
+	rvsarrayalias  = rvsarray
+	rvsarraystruct struct {
+		A int
+		B rvsarrayalias
+		C int
+	}
+	rvsarraystructalias = rvsarraystruct
+)
+
+var X, Y rvsarraystructalias
+
+// CopyValueContainingStructAlias2 copies a reflect.Value via aliased struct
+// and array types.
+func CopyValueContainingStructAlias2() {
+	X = Y
 }
 
 // CopyValueInArray copies a reflect.Value in an array.

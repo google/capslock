@@ -181,7 +181,7 @@ func rewriteCallsToOnceDoEtc(pkgs []*packages.Package) {
 						// This was not a call to a relevant function or method.
 						return true
 					}
-					fnType, ok := p.TypesInfo.TypeOf(obj).(*types.Signature)
+					fnType, ok := types.Unalias(p.TypesInfo.TypeOf(obj)).(*types.Signature)
 					if !ok {
 						// The argument does not appear to be a function.
 						return true
@@ -302,7 +302,7 @@ func statementCallingMethod(typeInfo *types.Info, recv ast.Expr, methodName stri
 	// Construct an ast node for the call (e.g. "v.M(arg1, arg2)") and add it
 	// to typeInfo.Types.
 	callExpr := &ast.CallExpr{Fun: selectorExpr, Args: append([]ast.Expr(nil), args...)}
-	typeInfo.Types[callExpr] = typeAndValueForResults(selection.Type().(*types.Signature).Results())
+	typeInfo.Types[callExpr] = typeAndValueForResults(types.Unalias(selection.Type()).(*types.Signature).Results())
 	// Return an ast node for a statement which is just the call.  No type
 	// information is needed for statements.
 	return &ast.ExprStmt{X: callExpr}
@@ -317,7 +317,7 @@ func statementCallingFunctionObject(typeInfo *types.Info, fn ast.Expr, args []as
 	// Construct an ast node for the call and add it to typeInfo.Types.
 	callExpr := &ast.CallExpr{Fun: fn, Args: append([]ast.Expr(nil), args...)}
 	fnType := typeInfo.TypeOf(fn)
-	fnTypeSignature, _ := fnType.(*types.Signature)
+	fnTypeSignature, _ := types.Unalias(fnType).(*types.Signature)
 	if fnTypeSignature == nil {
 		panic(fmt.Sprintf("cannot get type signature of function %v", fn))
 	}
