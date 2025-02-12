@@ -627,3 +627,62 @@ func TestIntermediatePackages(t *testing.T) {
 		}
 	}
 }
+
+func TestAlias(t *testing.T) {
+	filemap := map[string]string{
+		"p1/p1.go": `package p1; func Foo() { }; type T struct {}; func (t T) M() { Foo() }`,
+		"p2/p2.go": `package p2; import "p1"; func Foo() { type t = p1.T; m := t.M; m(t{}); }`,
+	}
+	classifier := testClassifier{
+		functions: map[[2]string]cpb.Capability{
+			{"p1", "p1.Foo"}: cpb.Capability_CAPABILITY_FILES,
+		},
+		ignoredEdges: nil,
+	}
+	pkgs, queriedPackages, cleanup, err := setup(filemap, "p2")
+	if cleanup != nil {
+		defer cleanup()
+	}
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	expected := &cpb.CapabilityInfoList{
+		CapabilityInfo: []*cpb.CapabilityInfo{
+			{
+				PackageName: proto.String("p2"),
+				Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+				Path: []*cpb.Function{
+					&cpb.Function{Name: proto.String("p2.Foo"), Package: proto.String("p2")},
+					&cpb.Function{Name: proto.String("(p2.t).M$thunk"), Package: proto.String("p1")},
+					&cpb.Function{Name: proto.String("(p1.T).M"), Package: proto.String("p1")},
+					&cpb.Function{Name: proto.String("p1.Foo"), Package: proto.String("p1")},
+				},
+				PackageDir: proto.String("p2"),
+			},
+		},
+	}
+
+	cil := GetCapabilityInfo(pkgs, queriedPackages, &Config{
+		Classifier:     &classifier,
+		DisableBuiltin: true,
+	})
+	opts := []cmp.Option{
+		protocmp.Transform(),
+		protocmp.SortRepeated(func(a, b *cpb.CapabilityInfo) bool {
+			if u, v := a.GetCapability(), b.GetCapability(); u != v {
+				return u < v
+			}
+			return a.GetPackageDir() < b.GetPackageDir()
+		}),
+		protocmp.IgnoreFields(&cpb.CapabilityInfoList{}, "package_info"),
+		protocmp.IgnoreFields(&cpb.CapabilityInfo{}, "dep_path"),
+		protocmp.IgnoreFields(&cpb.CapabilityInfo{}, "capability_type"),
+		protocmp.IgnoreFields(&cpb.Function{}, "site"),
+		protocmp.IgnoreFields(&cpb.Function_Site{}, "filename"),
+		protocmp.IgnoreFields(&cpb.Function_Site{}, "line"),
+		protocmp.IgnoreFields(&cpb.Function_Site{}, "column"),
+	}
+	if diff := cmp.Diff(expected, cil, opts...); diff != "" {
+		t.Errorf("GetCapabilityInfo: got %v, want %v; diff %s", cil, expected, diff)
+	}
+}

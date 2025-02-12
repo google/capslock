@@ -357,18 +357,20 @@ func (m *methodMatcher) match(typeInfo *types.Info, call *ast.CallExpr) ast.Expr
 	if calleeType == nil {
 		return nil
 	}
-	if ptr, ok := calleeType.(*types.Pointer); ok {
+	if ptr, ok := types.Unalias(calleeType).(*types.Pointer); ok {
 		calleeType = ptr.Elem()
 	}
-	named, ok := calleeType.(*types.Named)
+	named, ok := types.Unalias(calleeType).(*types.Named)
 	if !ok {
 		return nil
 	}
-	if named.Obj().Pkg() != nil {
-		if pkg := named.Obj().Pkg().Path(); pkg != m.pkg {
-			// Not the right package.
-			return nil
-		}
+	if named.Obj().Pkg() == nil {
+		// Not in a package.
+		return nil
+	}
+	if pkg := named.Obj().Pkg().Path(); pkg != m.pkg {
+		// Not the right package.
+		return nil
 	}
 	if named.Obj().Name() != m.typeName {
 		// Not the right type.
@@ -550,10 +552,10 @@ func nodeToPackage(node *callgraph.Node) *types.Package {
 		if typ == nil {
 			return nil
 		}
-		if p, ok := typ.(*types.Pointer); ok {
+		if p, ok := types.Unalias(typ).(*types.Pointer); ok {
 			typ = p.Elem()
 		}
-		if n, ok := typ.(*types.Named); ok {
+		if n, ok := types.Unalias(typ).(*types.Named); ok {
 			if pkg := n.Obj().Pkg(); pkg != nil {
 				return pkg
 			}

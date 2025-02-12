@@ -72,6 +72,27 @@ func InterestingOnceDo() int {
 	return 12345
 }
 
+// InterestingOnceDo2 calls Do on a sync.Once, with an argument that has an
+// alias type.
+func InterestingOnceDo2() int {
+	type t = func()
+	var x t = func() { callos.Foo() }
+	var once sync.Once
+	once.Do(x)
+	return 12345
+}
+
+// InterestingOnceDo3 calls Do on a value whose type is an alias of a pointer
+// to an alias of sync.Once.
+func InterestingOnceDo3() int {
+	type o = sync.Once
+	type p = *o
+	var once o
+	var oncep p = &once
+	oncep.Do(func() { callos.Foo() })
+	return 12345
+}
+
 type structContainingOnce struct {
 	a int
 	b sync.Once
