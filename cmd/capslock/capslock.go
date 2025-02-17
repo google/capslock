@@ -14,6 +14,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -167,7 +168,7 @@ func run() error {
 			log.Printf("Loaded package %q\n", p.Name)
 		}
 	}
-	if packages.PrintErrors(pkgs) > 0 {
+	if printErrors(pkgs) {
 		return fmt.Errorf("Some packages had errors. Aborting analysis.")
 	}
 	err = analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, &analyzer.Config{
@@ -254,4 +255,57 @@ func makeTemporaryModule(packageNames []string) (remove func(), err error) {
 		}
 	}
 	return remove, nil
+}
+
+func printErrors(pkgs []*packages.Package) (anyErrors bool) {
+	var (
+		buf           bytes.Buffer
+		stop          = false
+		skippedErrors = 0
+	)
+	const limit = 1000
+
+	add := func(err error) {
+		anyErrors = true
+		if stop {
+			skippedErrors++
+			return
+		}
+		fmt.Fprintln(&buf, err)
+		if buf.Len() > limit {
+			stop = true
+			buf.Truncate(limit)
+			buf.WriteString("(...truncated)\n")
+		}
+	}
+
+	// Print module errors.
+	seen := make(map[*packages.Module]bool)
+	packages.Visit(pkgs, func(p *packages.Package) bool {
+		if mod := p.Module; mod != nil && seen[mod] == false {
+			seen[mod] = true
+			if err := mod.Error; err != nil {
+				add(errors.New(err.Err))
+			}
+		}
+		return true
+	}, nil)
+
+	// Print package errors.
+	packages.Visit(pkgs, nil, func(p *packages.Package) {
+		for _, err := range p.Errors {
+			add(err)
+		}
+	})
+
+	if anyErrors {
+		os.Stderr.Write(buf.Bytes())
+		switch {
+		case skippedErrors == 1:
+			os.Stderr.WriteString("(1 more error)\n")
+		case skippedErrors > 1:
+			fmt.Fprintf(os.Stderr, "(%d more errors)\n", skippedErrors)
+		}
+	}
+	return anyErrors
 }
