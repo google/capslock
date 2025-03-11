@@ -269,6 +269,8 @@ func os.NewFile CAPABILITY_FILES
 func os.NewSyscallError CAPABILITY_SAFE
 func os.Open CAPABILITY_FILES
 func os.OpenFile CAPABILITY_FILES
+func os.OpenInRoot CAPABILITY_FILES
+func os.OpenRoot CAPABILITY_FILES
 func os.Pipe CAPABILITY_FILES
 func os.ReadDir CAPABILITY_FILES
 func os.ReadFile CAPABILITY_FILES
@@ -324,6 +326,17 @@ func (*os.ProcessState).Sys CAPABILITY_SAFE
 func (*os.ProcessState).SysUsage CAPABILITY_SAFE
 func (*os.ProcessState).SystemTime CAPABILITY_SAFE
 func (*os.ProcessState).UserTime CAPABILITY_SAFE
+func (*os.Root).Close CAPABILITY_FILES
+func (*os.Root).Create CAPABILITY_FILES
+func (*os.Root).FS CAPABILITY_FILES
+func (*os.Root).Lstat CAPABILITY_FILES
+func (*os.Root).Mkdir CAPABILITY_FILES
+func (*os.Root).Name CAPABILITY_FILES
+func (*os.Root).Open CAPABILITY_FILES
+func (*os.Root).OpenFile CAPABILITY_FILES
+func (*os.Root).OpenRoot CAPABILITY_FILES
+func (*os.Root).Remove CAPABILITY_FILES
+func (*os.Root).Stat CAPABILITY_FILES
 func (*os.SyscallError).Error CAPABILITY_SAFE
 func (*os.SyscallError).Timeout CAPABILITY_SAFE
 func (*os.SyscallError).Unwrap CAPABILITY_SAFE
