@@ -13,9 +13,15 @@ func crypto/ecdh.init CAPABILITY_SAFE
 func crypto/ecdsa.init CAPABILITY_SAFE
 func crypto/internal/boring.init CAPABILITY_SAFE
 func crypto/internal/fips.CAST CAPABILITY_UNSPECIFIED
+func crypto/internal/fips140.RecordApproved CAPABILITY_SAFE
+func crypto/internal/fips140.RecordNonApproved CAPABILITY_SAFE
+func crypto/internal/fips140.fatal CAPABILITY_SAFE
+func crypto/internal/fips140hash.Unwrap CAPABILITY_SAFE
 func crypto/internal/nistec.init CAPABILITY_SAFE
+func crypto/internal/sysrand.fatal CAPABILITY_SAFE
 func crypto/md5.init CAPABILITY_SAFE
 func crypto/rand.Read CAPABILITY_SAFE
+func crypto/rand.fatal CAPABILITY_SAFE
 func crypto/rand.getRandom CAPABILITY_SAFE
 func crypto/rand.init CAPABILITY_SAFE
 func (*crypto/rand.reader).Read CAPABILITY_SAFE
@@ -47,6 +53,8 @@ func (*internal/chacha8rand.State).Next CAPABILITY_SAFE
 func (*internal/chacha8rand.State).Refill CAPABILITY_SAFE
 func (*internal/chacha8rand.State).Reseed CAPABILITY_SAFE
 
+func internal/coverage/cfile.getCovCounterList CAPABILITY_SAFE
+
 func internal/godebug.init CAPABILITY_SAFE
 func (*internal/godebug.Setting).register CAPABILITY_SAFE
 func (*internal/godebug.Setting).Value CAPABILITY_SAFE
@@ -54,9 +62,15 @@ func (*internal/godebug.Setting).Value CAPABILITY_SAFE
 func (*internal/bisect.atomicPointerDedup).CompareAndSwap CAPABILITY_SAFE
 func (*internal/bisect.atomicPointerDedup).Load CAPABILITY_SAFE
 
+func internal/runtime/atomic.Casint32 CAPABILITY_SAFE
+func internal/runtime/atomic.Storeint32 CAPABILITY_SAFE
+
 func internal/syscall/windows/registry.init CAPABILITY_SAFE
 
 func (*index/suffixarray.Index).lookupAll CAPABILITY_SAFE
+
+func iter.coroswitch CAPABILITY_SAFE
+func iter.newcoro CAPABILITY_SAFE
 
 func log.Print CAPABILITY_SAFE
 func log.Printf CAPABILITY_SAFE
@@ -118,6 +132,7 @@ func net.ResolveUDPAddr CAPABILITY_NETWORK
 func net.ResolveUnixAddr CAPABILITY_NETWORK
 func net.SplitHostPort CAPABILITY_SAFE
 func net.init CAPABILITY_SAFE
+func net.isConnError CAPABILITY_SAFE
 func (*net.AddrError).Error CAPABILITY_SAFE
 func (*net.AddrError).Temporary CAPABILITY_SAFE
 func (*net.AddrError).Timeout CAPABILITY_SAFE
@@ -206,22 +221,39 @@ func (net/http.Header).Values CAPABILITY_SAFE
 func (*net/http.MaxBytesError).Error CAPABILITY_SAFE
 func (*net/http.ProtocolError).Error CAPABILITY_SAFE
 func (*net/http.ProtocolError).Is CAPABILITY_SAFE
+func (*net/http.contextKey).String CAPABILITY_SAFE
 func (net/http.http2ConnectionError).Error CAPABILITY_SAFE
 func (net/http.http2ErrCode).String CAPABILITY_SAFE
+func (net/http.http2FrameType).String CAPABILITY_SAFE
+func (net/http.http2FrameWriteRequest).String CAPABILITY_SAFE
 func (net/http.http2GoAwayError).Error CAPABILITY_SAFE
+func (net/http.http2Setting).String CAPABILITY_SAFE
+func (net/http.http2SettingID).String CAPABILITY_SAFE
+func (net/http.http2StreamError).Error CAPABILITY_SAFE
 func (net/http.http2connError).Error CAPABILITY_SAFE
 func (net/http.http2duplicatePseudoHeaderError).Error CAPABILITY_SAFE
 func (net/http.http2goAwayFlowError).Error CAPABILITY_SAFE
 func (net/http.http2headerFieldNameError).Error CAPABILITY_SAFE
 func (net/http.http2headerFieldValueError).Error CAPABILITY_SAFE
 func (*net/http.http2httpError).Error CAPABILITY_SAFE
+func (*net/http.http2httpError).Temporary CAPABILITY_SAFE
+func (*net/http.http2httpError).Timeout CAPABILITY_SAFE
 func (net/http.http2noCachedConnError).Error CAPABILITY_SAFE
 func (net/http.http2pseudoHeaderError).Error CAPABILITY_SAFE
+func (net/http.http2streamState).String CAPABILITY_SAFE
+func (*net/http.http2writeData).String CAPABILITY_SAFE
 func (net/http.issue22091Error).Error CAPABILITY_SAFE
 func (net/http.nothingWrittenError).Unwrap CAPABILITY_SAFE
+func (*net/http.pattern).String CAPABILITY_SAFE
 func (net/http.statusError).Error CAPABILITY_SAFE
 func (*net/http.timeoutError).Error CAPABILITY_SAFE
+func (*net/http.timeoutError).Temporary CAPABILITY_SAFE
+func (*net/http.timeoutError).Timeout CAPABILITY_SAFE
 func (net/http.tlsHandshakeTimeoutError).Error CAPABILITY_SAFE
+func (net/http.tlsHandshakeTimeoutError).Temporary CAPABILITY_SAFE
+func (net/http.tlsHandshakeTimeoutError).Timeout CAPABILITY_SAFE
+func (net/http.transportReadFromServerError).Error CAPABILITY_SAFE
+func (net/http.transportReadFromServerError).Unwrap CAPABILITY_SAFE
 func (*net/http.unsupportedTEError).Error CAPABILITY_SAFE
 
 func (net/netip.Addr).WithZone CAPABILITY_SAFE
@@ -574,6 +606,7 @@ func runtime/debug.Stack CAPABILITY_SAFE
 func runtime/debug.WriteHeapDump CAPABILITY_FILES
 func runtime/debug.init CAPABILITY_SAFE
 func runtime/metrics.Read CAPABILITY_RUNTIME
+func (runtime/metrics.Value).Float64Histogram CAPABILITY_SAFE
 func runtime/pprof.init CAPABILITY_SAFE
 func (*runtime/pprof.labelMap).String CAPABILITY_SAFE
 func runtime/trace.userLog CAPABILITY_SAFE
@@ -646,19 +679,31 @@ func strings.TrimSuffix CAPABILITY_SAFE
 func (*strings.Builder).copyCheck CAPABILITY_SAFE
 
 func sync.fastrandn CAPABILITY_SAFE
+func sync.fatal CAPABILITY_SAFE
 func sync.init CAPABILITY_SAFE
+func sync.runtime_LoadAcquintptr CAPABILITY_SAFE
 func sync.runtime_Semacquire CAPABILITY_SAFE
 func sync.runtime_SemacquireMutex CAPABILITY_SAFE
 func sync.runtime_Semrelease CAPABILITY_SAFE
+func sync.runtime_StoreReluintptr CAPABILITY_SAFE
 func sync.runtime_notifyListAdd CAPABILITY_SAFE
+func sync.runtime_notifyListCheck CAPABILITY_SAFE
 func sync.runtime_notifyListNotifyAll CAPABILITY_SAFE
 func sync.runtime_notifyListNotifyOne CAPABILITY_SAFE
 func sync.runtime_notifyListWait CAPABILITY_SAFE
+func sync.runtime_procPin CAPABILITY_SAFE
+func sync.runtime_procUnpin CAPABILITY_SAFE
+func sync.runtime_registerPoolCleanup CAPABILITY_SAFE
+func (*sync.Map).Clear CAPABILITY_SAFE
+func (*sync.Map).CompareAndDelete CAPABILITY_SAFE
+func (*sync.Map).CompareAndSwap CAPABILITY_SAFE
 func (*sync.Map).Delete CAPABILITY_SAFE
 func (*sync.Map).Load CAPABILITY_SAFE
 func (*sync.Map).LoadAndDelete CAPABILITY_SAFE
 func (*sync.Map).LoadOrStore CAPABILITY_SAFE
+func (*sync.Map).Range CAPABILITY_SAFE
 func (*sync.Map).Store CAPABILITY_SAFE
+func (*sync.Map).Swap CAPABILITY_SAFE
 func (*sync.Mutex).Lock CAPABILITY_SAFE
 func (*sync.Mutex).TryLock CAPABILITY_SAFE
 func (*sync.Mutex).Unlock CAPABILITY_SAFE
@@ -670,12 +715,14 @@ func (*sync.RWMutex).RUnlock CAPABILITY_SAFE
 func (*sync.RWMutex).TryLock CAPABILITY_SAFE
 func (*sync.RWMutex).TryRLock CAPABILITY_SAFE
 func (*sync.RWMutex).Unlock CAPABILITY_SAFE
+func (*sync.WaitGroup).Wait CAPABILITY_SAFE
 
 func sync/atomic.CompareAndSwapPointer CAPABILITY_UNSAFE_POINTER
 func sync/atomic.StorePointer CAPABILITY_UNSAFE_POINTER
 func sync/atomic.SwapPointer CAPABILITY_UNSAFE_POINTER
 
 func syscall.init CAPABILITY_SAFE
+func syscall.init$1 CAPABILITY_SAFE
 func syscall.Getenv CAPABILITY_READ_SYSTEM_STATE
 func (*syscall.DLLError).Error CAPABILITY_SAFE
 func (*syscall.DLLError).Unwrap CAPABILITY_SAFE
@@ -755,6 +802,7 @@ func golang.org/x/sys/unix.init CAPABILITY_SAFE
 
 func golang.org/x/tools/container/intsets.havePOPCNT CAPABILITY_SAFE
 func golang.org/x/tools/container/intsets.popcnt CAPABILITY_SAFE
+func golang.org/x/tools/go/ssa/ssautil.isSyntactic CAPABILITY_SAFE
 
 # Int.Rand uses an arbitrary random-number generator passed in a
 # parameter, so it can reach code outside math/big.  We classify
@@ -819,11 +867,21 @@ package crypto/aes CAPABILITY_SAFE
 package crypto/internal/boring/bcache CAPABILITY_SAFE
 package crypto/internal/bigmod CAPABILITY_SAFE
 package crypto/internal/boring/sig CAPABILITY_SAFE
+package crypto/internal/edwards25519/field CAPABILITY_SAFE
 package crypto/internal/fips CAPABILITY_SAFE
 package crypto/internal/fips/sha256 CAPABILITY_SAFE
 package crypto/internal/fips/sha3 CAPABILITY_SAFE
 package crypto/internal/fips/sha512 CAPABILITY_SAFE
-package crypto/internal/edwards25519/field CAPABILITY_SAFE
+package crypto/internal/fips140/aes CAPABILITY_SAFE
+package crypto/internal/fips140/aes/gcm CAPABILITY_SAFE
+package crypto/internal/fips140/bigmod CAPABILITY_SAFE
+package crypto/internal/fips140/check CAPABILITY_SAFE
+package crypto/internal/fips140/edwards25519/field CAPABILITY_SAFE
+package crypto/internal/fips140/nistec CAPABILITY_SAFE
+package crypto/internal/fips140/sha256 CAPABILITY_SAFE
+package crypto/internal/fips140/sha3 CAPABILITY_SAFE
+package crypto/internal/fips140/sha512 CAPABILITY_SAFE
+package crypto/internal/fips140/subtle CAPABILITY_SAFE
 package crypto/internal/nistec CAPABILITY_SAFE
 package crypto/md5 CAPABILITY_SAFE
 package crypto/sha1 CAPABILITY_SAFE
@@ -850,6 +908,7 @@ package unique CAPABILITY_SAFE
 package vendor/golang.org/x/crypto/chacha20poly1305 CAPABILITY_SAFE
 package vendor/golang.org/x/crypto/internal/poly1305 CAPABILITY_SAFE
 package vendor/golang.org/x/sys/cpu CAPABILITY_SAFE
+package weak CAPABILITY_SAFE
 package golang.org/x/sys/cpu CAPABILITY_SAFE
 
 package internal/syscall/execenv CAPABILITY_READ_SYSTEM_STATE
@@ -882,6 +941,7 @@ ignore_edge (io.discard).ReadFrom (*sync.Pool).Get
 ignore_edge (mime.WordEncoder).bEncode io.WriteString
 ignore_edge archive/zip.newFlateReader (*sync.Pool).Get
 ignore_edge archive/zip.newFlateWriter (*sync.Pool).Get
+ignore_edge crypto/internal/fips140/drbg.Read (*sync.Pool).Get
 ignore_edge crypto/tls.signedMessage io.WriteString
 ignore_edge database/sql.convertAssignRows (reflect.Value).Convert
 ignore_edge database/sql.convertAssignRows (reflect.Value).Interface
@@ -890,7 +950,9 @@ ignore_edge database/sql.convertAssignRows reflect.New
 ignore_edge database/sql.convertAssignRows reflect.Zero
 ignore_edge encoding/json.newEncodeState (*sync.Pool).Get
 ignore_edge encoding/json.newScanner (*sync.Pool).Get
+ignore_edge go/doc/comment.wrap$5 sort.Search
 ignore_edge go/printer.newPrinter (*sync.Pool).Get
+ignore_edge (*go/types.MethodSet).Lookup sort.Search
 ignore_edge internal/coverage/encodemeta.NewCoverageMetaDataBuilder io.WriteString
 ignore_edge internal/coverage/encodemeta.hashFuncDesc io.WriteString
 ignore_edge internal/poll.getPipe (*sync.Pool).Get
@@ -913,6 +975,21 @@ ignore_edge golang.org/x/net/http2/hpack.HuffmanDecode (*sync.Pool).Get
 ignore_edge golang.org/x/net/http2/hpack.HuffmanDecodeToString (*sync.Pool).Get
 ignore_edge (*golang.org/x/net/http2/hpack.Decoder).decodeString (*sync.Pool).Get
 ignore_edge (*golang.org/x/net/http2/hpack.Decoder).readString (*sync.Pool).Get
+ignore_edge golang.org/x/text/currency.FromRegion sort.Search
+ignore_edge golang.org/x/text/currency.Region sort.Search
+ignore_edge (*golang.org/x/text/currency.symbolIndex).lookup sort.Search
+ignore_edge golang.org/x/text/encoding/ianaindex.findMIB sort.Search
+ignore_edge golang.org/x/text/internal/colltab.MatchLang sort.Search
+ignore_edge golang.org/x/text/internal/language.getRegionM49 sort.Search
+ignore_edge golang.org/x/text/internal/language.normLang sort.Search
+ignore_edge golang.org/x/text/internal/language.normRegion sort.Search
+ignore_edge golang.org/x/text/internal/language.searchUint sort.Search
+ignore_edge golang.org/x/text/internal/language/compact.getCoreIndex sort.Search
+ignore_edge golang.org/x/text/internal/stringset.Search sort.Search
+ignore_edge (golang.org/x/text/internal/tag.Index).Index sort.Search
+ignore_edge (*golang.org/x/text/language/display.tagIndex).index sort.Search
+ignore_edge golang.org/x/text/message.newPrinter (*sync.Pool).Get
+ignore_edge golang.org/x/text/unicode/runenames.Name sort.Search
 
 # cgo_suffix defines function name suffixes that are automatically generated
 # by cgo. These are used to identify their presence as Capslock cannot analyze
