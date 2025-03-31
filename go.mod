@@ -1,12 +1,13 @@
 module github.com/google/capslock
 
 go 1.23.3
+toolchain go1.24.1
 
 require (
 	github.com/fatih/color v1.18.0
 	github.com/google/go-cmp v0.7.0
 	golang.org/x/tools v0.31.0
-	google.golang.org/protobuf v1.36.5
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
