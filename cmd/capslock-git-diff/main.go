@@ -93,8 +93,7 @@ func AnalyzeAtRevision(rev, pkgname string) (cil *cpb.CapabilityInfoList, err er
 		return nil, fmt.Errorf("creating temporary directory: %w", err)
 	}
 	defer func() {
-		err1 := os.RemoveAll(tmpdir)
-		if err1 != nil {
+		if err1 := os.RemoveAll(tmpdir); err1 != nil {
 			log.Printf("Error removing temporary directory %q: %v", tmpdir, err1)
 		}
 	}()
