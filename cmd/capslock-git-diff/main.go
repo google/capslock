@@ -92,6 +92,12 @@ func AnalyzeAtRevision(rev, pkgname string) (cil *cpb.CapabilityInfoList, err er
 	if err != nil {
 		return nil, fmt.Errorf("creating temporary directory: %w", err)
 	}
+	defer func() {
+		err1 := os.RemoveAll(tmpdir)
+		if err1 != nil {
+			log.Printf("Error removing temporary directory %q: %v", tmpdir, err1)
+		}
+	}()
 	// Get the location of the .git directory, so we can make a temporary clone.
 	var b bytes.Buffer
 	if err = run(&b, "git", "rev-parse", "--git-dir"); err != nil {
