@@ -13,7 +13,7 @@
 //
 // This requires Capslock to be installed:
 //
-//	go install github.com/google/capslock/cmd/capslock@latest
+//	go install github.com/google/capslock/cmd/capslock-git-diff@latest
 //
 // To compare against the current state of the repository, specify "." as a
 // revision:
