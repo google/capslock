@@ -75,8 +75,8 @@ func iter.newcoro CAPABILITY_SAFE
 func log.Print CAPABILITY_SAFE
 func log.Printf CAPABILITY_SAFE
 func log.Println CAPABILITY_SAFE
-func log.SetFlags CAPABILITY_MODIFY_SYSTEM_STATE
-func log.SetOutput CAPABILITY_MODIFY_SYSTEM_STATE
+func log.SetFlags MODIFY_SYSTEM_STATE/LOGGING
+func log.SetOutput MODIFY_SYSTEM_STATE/LOGGING
 
 func maps.clone CAPABILITY_SAFE
 func maps.keys CAPABILITY_SAFE
@@ -258,11 +258,11 @@ func (*net/http.unsupportedTEError).Error CAPABILITY_SAFE
 
 func (net/netip.Addr).WithZone CAPABILITY_SAFE
 
-func os.Chdir CAPABILITY_MODIFY_SYSTEM_STATE
+func os.Chdir MODIFY_SYSTEM_STATE/CHDIR
 func os.Chmod CAPABILITY_FILES
 func os.Chown CAPABILITY_FILES
 func os.Chtimes CAPABILITY_FILES
-func os.Clearenv CAPABILITY_MODIFY_SYSTEM_STATE
+func os.Clearenv MODIFY_SYSTEM_STATE/ENV
 func os.CopyFS CAPABILITY_FILES
 func os.CopyFS$1 CAPABILITY_FILES
 func os.Create CAPABILITY_FILES
@@ -311,20 +311,20 @@ func os.Remove CAPABILITY_FILES
 func os.RemoveAll CAPABILITY_FILES
 func os.Rename CAPABILITY_FILES
 func os.SameFile CAPABILITY_FILES
-func os.Setenv CAPABILITY_MODIFY_SYSTEM_STATE
+func os.Setenv MODIFY_SYSTEM_STATE/ENV
 func os.StartProcess CAPABILITY_EXEC
 func os.Stat CAPABILITY_FILES
 func os.Symlink CAPABILITY_FILES
 func os.TempDir CAPABILITY_READ_SYSTEM_STATE
 func os.Truncate CAPABILITY_FILES
-func os.Unsetenv CAPABILITY_MODIFY_SYSTEM_STATE
+func os.Unsetenv MODIFY_SYSTEM_STATE/ENV
 func os.UserCacheDir CAPABILITY_READ_SYSTEM_STATE
 func os.UserConfigDir CAPABILITY_READ_SYSTEM_STATE
 func os.UserHomeDir CAPABILITY_READ_SYSTEM_STATE
 func os.WriteFile CAPABILITY_FILES
 func os.init CAPABILITY_SAFE
 func os.init$1 CAPABILITY_SAFE
-func (*os.File).Chdir CAPABILITY_FILES
+func (*os.File).Chdir MODIFY_SYSTEM_STATE/CHDIR
 func (*os.File).Chmod CAPABILITY_FILES
 func (*os.File).Chown CAPABILITY_FILES
 func (*os.File).Close CAPABILITY_FILES
@@ -917,7 +917,7 @@ package internal/syscall/windows CAPABILITY_SYSTEM_CALLS
 package internal/syscall/windows/registry CAPABILITY_SYSTEM_CALLS
 package os CAPABILITY_OPERATING_SYSTEM
 package os/exec CAPABILITY_EXEC
-package os/signal CAPABILITY_MODIFY_SYSTEM_STATE
+package os/signal MODIFY_SYSTEM_STATE/SIGNALS
 package os/user CAPABILITY_READ_SYSTEM_STATE
 package reflect CAPABILITY_REFLECT
 package runtime CAPABILITY_RUNTIME

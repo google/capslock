@@ -42,9 +42,9 @@ func (b bfsState) next() *callgraph.Node {
 }
 
 type nodeset map[*callgraph.Node]struct{}
-type nodesetPerCapability map[cpb.Capability]nodeset
+type nodesetPerCapability map[string]nodeset
 
-func (nc nodesetPerCapability) add(cap cpb.Capability, node *callgraph.Node) {
+func (nc nodesetPerCapability) add(cap string, node *callgraph.Node) {
 	m := nc[cap]
 	if m == nil {
 		m = make(nodeset)
@@ -591,6 +591,24 @@ func nodeToPackage(node *callgraph.Node) *types.Package {
 				return pkg
 			}
 		}
+	}
+	return nil
+}
+
+// oldCapability converts a capability string into a Capability enum value.
+//
+// An enum value is returned if the string matches the enum exactly, or if the
+// string is a finer-grained version, which begins with the enum followed by
+// '/'.
+//
+// If a match is not found, oldCapability returns nil.
+func oldCapability(c string) *cpb.Capability {
+	c, _, _ = strings.Cut(c, "/")
+	if cap, ok := cpb.Capability_value[c]; ok {
+		return cpb.Capability(cap).Enum()
+	}
+	if cap, ok := cpb.Capability_value["CAPABILITY_"+c]; ok {
+		return cpb.Capability(cap).Enum()
 	}
 	return nil
 }

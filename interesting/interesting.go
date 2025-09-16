@@ -28,9 +28,9 @@ var interestingData string
 // Type Classifier contains information used to map code features to
 // concrete capabilities.
 type Classifier struct {
-	functionCategory   map[string]cpb.Capability
-	unanalyzedCategory map[string]cpb.Capability
-	packageCategory    map[string]cpb.Capability
+	functionCategory   map[string]string
+	unanalyzedCategory map[string]string
+	packageCategory    map[string]string
 	ignoredEdges       map[[2]string]struct{}
 	cgoSuffixes        []string
 }
@@ -39,9 +39,9 @@ var internalMap = parseInternalMapOrDie()
 
 func newClassifier() *Classifier {
 	return &Classifier{
-		functionCategory:   map[string]cpb.Capability{},
-		unanalyzedCategory: map[string]cpb.Capability{},
-		packageCategory:    map[string]cpb.Capability{},
+		functionCategory:   map[string]string{},
+		unanalyzedCategory: map[string]string{},
+		packageCategory:    map[string]string{},
 		ignoredEdges:       map[[2]string]struct{}{},
 	}
 }
@@ -64,6 +64,24 @@ func parseCapabilityMap(source string, r io.Reader) (*Classifier, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("%v:%v: invalid format", source, line)
 		}
+		// parseCapability converts a capability enum string (e.g. "CAPABILITY_FILES")
+		// to the newer string form (e.g. "FILES").
+		// Strings that are not in the old form (that do not start with CAPABILITY_)
+		// are returned unchanged.
+		parseCapability := func(c string) (s string, ok bool) {
+			if after, found := strings.CutPrefix(c, "CAPABILITY_"); found {
+				// This input uses a capability enum.  Convert it to the string form.
+				if _, ok := cpb.Capability_value[c]; !ok {
+					// This doesn't match one of the enums, it is probably a typo.
+					return "", false
+				}
+				if after == "UNSPECIFIED" {
+					return "", true
+				}
+				return after, true
+			}
+			return c, true
+		}
 		// Keyword is first argument.
 		switch args[0] {
 		case "cgo_suffix":
@@ -77,11 +95,11 @@ func parseCapabilityMap(source string, r io.Reader) (*Classifier, error) {
 			if _, ok := ret.functionCategory[args[1]]; ok {
 				return nil, fmt.Errorf("%v:%v: duplicate %v key", source, line, args[0])
 			}
-			c, ok := cpb.Capability_value[args[2]]
+			c, ok := parseCapability(args[2])
 			if !ok {
 				return nil, fmt.Errorf("%v:%v: unsupported capability %q", source, line, args[2])
 			}
-			ret.functionCategory[args[1]] = cpb.Capability(c)
+			ret.functionCategory[args[1]] = c
 		case "ignore_edge":
 			// Format: ignore_edge function function
 			if len(args) < 3 {
@@ -100,17 +118,17 @@ func parseCapabilityMap(source string, r io.Reader) (*Classifier, error) {
 			if _, ok := ret.packageCategory[args[1]]; ok {
 				return nil, fmt.Errorf("%v:%v: duplicate %v key", source, line, args[0])
 			}
-			c, ok := cpb.Capability_value[args[2]]
+			c, ok := parseCapability(args[2])
 			if !ok {
 				return nil, fmt.Errorf("%v:%v: unsupported capability %q", source, line, args[2])
 			}
-			ret.packageCategory[args[1]] = cpb.Capability(c)
+			ret.packageCategory[args[1]] = c
 		case "unanalyzed":
 			// Format: unanalyzed function
 			if _, ok := ret.unanalyzedCategory[args[1]]; ok {
 				return nil, fmt.Errorf("%v:%v: duplicate %v key", source, line, args[0])
 			}
-			ret.unanalyzedCategory[args[1]] = cpb.Capability_CAPABILITY_UNANALYZED
+			ret.unanalyzedCategory[args[1]] = "UNANALYZED"
 		default:
 			return nil, fmt.Errorf("%v:%v: unsupported keyword %q", source, line, args[0])
 		}
@@ -187,14 +205,14 @@ func (c *Classifier) IncludeCall(edge *callgraph.Edge) bool {
 	return !ok
 }
 
-// FunctionCategory returns a Category for the given function specified by
+// FunctionCategory returns a category for the given function specified by
 // a package name and function name.  Examples of function names include
 // "math.Cos", "(time.Time).Clock", and "(*sync.Cond).Signal".
 //
-// If the return value is Unspecified, then we have not declared it to be
+// If the return value is "", then we have not declared it to be
 // either safe or unsafe, so its descendants will have to be considered by the
 // static analysis.
-func (c *Classifier) FunctionCategory(pkg, name string) cpb.Capability {
+func (c *Classifier) FunctionCategory(pkg, name string) string {
 	for _, s := range c.cgoSuffixes {
 		// Calls to C functions produce a call to a function
 		// named "_cgo_runtime_cgocall" in the current package.
@@ -202,7 +220,7 @@ func (c *Classifier) FunctionCategory(pkg, name string) cpb.Capability {
 		// "C" pseudo-package (see See https://pkg.go.dev/cmd/cgo)
 		// produce calls to other functions listed in cgoSuffixes.
 		if strings.HasSuffix(name, s) {
-			return cpb.Capability_CAPABILITY_CGO
+			return "CGO"
 		}
 	}
 	if cat, ok := c.functionCategory[name]; ok {

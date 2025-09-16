@@ -45,10 +45,10 @@ type Classifier interface {
 	// a package name and function name.  Examples of function names include
 	// "math.Cos", "(time.Time).Clock", and "(*sync.Cond).Signal".
 	//
-	// If the return value is Unspecified, then we have not declared it to be
+	// If the return value is "", then we have not declared it to be
 	// either safe or unsafe, so its descendants will have to be considered by the
 	// static analysis.
-	FunctionCategory(pkg string, name string) cpb.Capability
+	FunctionCategory(pkg string, name string) string
 
 	// IncludeCall returns true if a call from one function to another should be
 	// considered when searching for transitive capabilities.  Usually this should
@@ -95,7 +95,7 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 	}
 	var caps []output
 	forEachPath(pkgs, queriedPackages,
-		func(cap cpb.Capability, nodes bfsStateMap, v *callgraph.Node) {
+		func(cap string, nodes bfsStateMap, v *callgraph.Node) {
 			i := 0
 			c := cpb.CapabilityInfo{}
 			fn := v.Func
@@ -109,7 +109,8 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 				if i == 0 {
 					n = v.Func.Package().Pkg.Path()
 					ctype = cpb.CapabilityType_CAPABILITY_TYPE_DIRECT
-					c.Capability = cap.Enum()
+					c.Capability = oldCapability(cap)
+					c.CapabilityName = proto.String(cap)
 					c.PackageDir = proto.String(v.Func.Package().Pkg.Path())
 					c.PackageName = proto.String(v.Func.Package().Pkg.Name())
 				}
@@ -141,7 +142,7 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 	if config.Granularity == GranularityPackage {
 		// Keep only the first entry in the sorted list for each (capability, package) pair.
 		type cp struct {
-			cpb.Capability
+			cap string
 			*ssa.Package
 		}
 		seen := make(map[cp]struct{})
@@ -151,7 +152,7 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 			if o.Function != nil {
 				pkg = o.Function.Package()
 			}
-			cp := cp{o.CapabilityInfo.GetCapability(), pkg}
+			cp := cp{o.CapabilityInfo.GetCapabilityName(), pkg}
 			if _, ok := seen[cp]; ok {
 				return true
 			}
@@ -172,7 +173,7 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 }
 
 type CapabilityCounter struct {
-	capability       cpb.Capability
+	capability       string
 	count            int64
 	direct_count     int64
 	transitive_count int64
@@ -187,11 +188,11 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 	var cs []*cpb.CapabilityStats
 	cm := make(map[string]*CapabilityCounter)
 	forEachPath(pkgs, queriedPackages,
-		func(cap cpb.Capability, nodes bfsStateMap, v *callgraph.Node) {
-			if _, ok := cm[cap.String()]; !ok {
-				cm[cap.String()] = &CapabilityCounter{count: 1, capability: cap}
+		func(cap string, nodes bfsStateMap, v *callgraph.Node) {
+			if _, ok := cm[cap]; !ok {
+				cm[cap] = &CapabilityCounter{count: 1, capability: cap}
 			} else {
-				cm[cap.String()].count += 1
+				cm[cap].count += 1
 			}
 			i := 0
 			var n string
@@ -212,27 +213,28 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 				incomingEdge, v = nodes[v].edge, nodes[v].next()
 			}
 			if isDirect {
-				if _, ok := cm[cap.String()]; !ok {
-					cm[cap.String()] = &CapabilityCounter{count: 1, direct_count: 1}
+				if _, ok := cm[cap]; !ok {
+					cm[cap] = &CapabilityCounter{count: 1, direct_count: 1}
 				} else {
-					cm[cap.String()].direct_count += 1
+					cm[cap].direct_count += 1
 				}
 			} else {
-				if _, ok := cm[cap.String()]; !ok {
-					cm[cap.String()] = &CapabilityCounter{count: 1, transitive_count: 1}
+				if _, ok := cm[cap]; !ok {
+					cm[cap] = &CapabilityCounter{count: 1, transitive_count: 1}
 				} else {
-					cm[cap.String()].transitive_count += 1
+					cm[cap].transitive_count += 1
 				}
 			}
-			if _, ok := cm[cap.String()]; !ok {
-				cm[cap.String()] = &CapabilityCounter{example: e}
+			if _, ok := cm[cap]; !ok {
+				cm[cap] = &CapabilityCounter{example: e}
 			} else {
-				cm[cap.String()].example = e
+				cm[cap].example = e
 			}
 		}, config)
 	for _, counts := range cm {
 		cs = append(cs, &cpb.CapabilityStats{
-			Capability:      &counts.capability,
+			Capability:      oldCapability(counts.capability),
+			CapabilityName:  proto.String(counts.capability),
 			Count:           &counts.count,
 			DirectCount:     &counts.direct_count,
 			TransitiveCount: &counts.transitive_count,
@@ -255,11 +257,11 @@ func GetCapabilityStats(pkgs []*packages.Package, queriedPackages map[*types.Pac
 func GetCapabilityCounts(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) *cpb.CapabilityCountList {
 	cm := make(map[string]int64)
 	forEachPath(pkgs, queriedPackages,
-		func(cap cpb.Capability, nodes bfsStateMap, v *callgraph.Node) {
-			if _, ok := cm[cap.String()]; !ok {
-				cm[cap.String()] = 1
+		func(cap string, nodes bfsStateMap, v *callgraph.Node) {
+			if _, ok := cm[cap]; !ok {
+				cm[cap] = 1
 			} else {
-				cm[cap.String()] += 1
+				cm[cap] += 1
 			}
 		}, config)
 	return &cpb.CapabilityCountList{
@@ -408,7 +410,7 @@ type GraphOutputCallFn func(edge *callgraph.Edge)
 
 // GraphOutputCapabilityFn represents a function which is called by
 // CapabilityGraph for each function capability.
-type GraphOutputCapabilityFn func(fn *callgraph.Node, c cpb.Capability)
+type GraphOutputCapabilityFn func(fn *callgraph.Node, capability string)
 
 // CapabilityGraph analyzes the callgraph for the packages in pkgs.
 //
@@ -437,7 +439,7 @@ func CapabilityGraph(pkgs []*packages.Package,
 	outputNode GraphOutputNodeFn,
 	outputCall GraphOutputCallFn,
 	outputCapability GraphOutputCapabilityFn,
-	filter func(capability cpb.Capability) bool,
+	filter func(capability string) bool,
 ) {
 	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, config)
 	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
@@ -550,17 +552,17 @@ func getExtraNodesByCapability(graph *callgraph.Graph, allFunctions map[*ssa.Fun
 					if node, ok := graph.Nodes[f]; ok {
 						// This is a store to a non-local reflect.Value, or to a non-local
 						// object that contains a reflect.Value.
-						extraNodesByCapability.add(cpb.Capability_CAPABILITY_REFLECT, node)
+						extraNodesByCapability.add("REFLECT", node)
 					}
 				}
 			}
 		}
 	}
 	// Add nodes for the functions in unsafePointerFunctions to
-	// extraNodesByCapability[Capability_CAPABILITY_UNSAFE_POINTER].
+	// extraNodesByCapability["UNSAFE_POINTER"].
 	for f := range unsafePointerFunctions {
 		if node, ok := graph.Nodes[f]; ok {
-			extraNodesByCapability.add(cpb.Capability_CAPABILITY_UNSAFE_POINTER, node)
+			extraNodesByCapability.add("UNSAFE_POINTER", node)
 		}
 	}
 	// Add the arbitrary-execution capability to asm function nodes.
@@ -571,7 +573,7 @@ func getExtraNodesByCapability(graph *callgraph.Graph, allFunctions map[*ssa.Fun
 				// Exclude synthetic functions, such as those loaded from object files.
 				continue
 			}
-			extraNodesByCapability.add(cpb.Capability_CAPABILITY_ARBITRARY_EXECUTION, node)
+			extraNodesByCapability.add("ARBITRARY_EXECUTION", node)
 		}
 	}
 	return extraNodesByCapability
@@ -640,12 +642,12 @@ func getNodeCapabilities(graph *callgraph.Graph,
 		if v.Func == nil {
 			continue
 		}
-		var c cpb.Capability
+		var capability string
 		if v.Func.Package() != nil && v.Func.Package().Pkg != nil {
 			// Categorize v.Func.
 			pkg := v.Func.Package().Pkg.Path()
 			name := v.Func.String()
-			c = classifier.FunctionCategory(pkg, name)
+			capability = classifier.FunctionCategory(pkg, name)
 		} else {
 			origin := v.Func.Origin()
 			if origin == nil || origin.Package() == nil || origin.Package().Pkg == nil {
@@ -656,12 +658,12 @@ func getNodeCapabilities(graph *callgraph.Graph,
 			// instead.
 			pkg := origin.Package().Pkg.Path()
 			name := origin.String()
-			c = classifier.FunctionCategory(pkg, name)
+			capability = classifier.FunctionCategory(pkg, name)
 		}
-		if c == cpb.Capability_CAPABILITY_SAFE {
+		if capability == "SAFE" {
 			safe[v] = struct{}{}
-		} else if c != cpb.Capability_CAPABILITY_UNSPECIFIED {
-			nodesByCapability.add(c, v)
+		} else if capability != "" {
+			nodesByCapability.add(capability, v)
 		}
 	}
 	return safe, nodesByCapability
@@ -710,16 +712,16 @@ func mergeCapabilities(nodesByCapability, extraNodesByCapability nodesetPerCapab
 //
 // forEachPath may modify pkgs.
 func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
-	fn func(cpb.Capability, bfsStateMap, *callgraph.Node), config *Config,
+	fn func(cap string, nodes bfsStateMap, v *callgraph.Node), config *Config,
 ) {
 	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, config)
 	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
 	extraNodesByCapability = nil // we don't use extraNodesByCapability again.
-	var caps []cpb.Capability
+	var caps []string
 	for cap := range nodesByCapability {
 		caps = append(caps, cap)
 	}
-	sort.Slice(caps, func(i, j int) bool { return caps[i] < caps[j] })
+	sort.Strings(caps)
 	for _, cap := range caps {
 		nodes := nodesByCapability[cap]
 		var (
@@ -795,7 +797,7 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 func intermediatePackages(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{}, config *Config) *cpb.CapabilityInfoList {
 	type packageAndCapability struct {
 		pkg *types.Package
-		cpb.Capability
+		cap string
 	}
 	seen := make(map[packageAndCapability]*cpb.CapabilityInfo)
 
@@ -803,8 +805,8 @@ func intermediatePackages(pkgs []*packages.Package, queriedPackages map[*types.P
 	// then generate the graph for that capability, calling nodeCallback for
 	// each node in that graph.  We store the capability that was passed to
 	// filter in a variable, so that it is available to nodeCallback.
-	var capability cpb.Capability
-	filter := func(c cpb.Capability) bool {
+	var capability string
+	filter := func(c string) bool {
 		capability = c
 		return config.CapabilitySet.Has(c)
 	}
@@ -826,9 +828,10 @@ func intermediatePackages(pkgs []*packages.Package, queriedPackages map[*types.P
 			return
 		}
 		ci := cpb.CapabilityInfo{
-			Capability:  capability.Enum(),
-			PackageDir:  proto.String(pkg.Path()),
-			PackageName: proto.String(pkg.Name()),
+			Capability:     oldCapability(capability),
+			CapabilityName: proto.String(capability),
+			PackageDir:     proto.String(pkg.Path()),
+			PackageName:    proto.String(pkg.Name()),
 		}
 		if !config.OmitPaths {
 			// Add ci.Path entries for the part of the path leading from a function in

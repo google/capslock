@@ -32,6 +32,7 @@ func Bar() { println(os.Getpid()) }
 func A() { B(); C() }
 func B() { C() }
 func C() { println(os.IsExist(nil)) }
+func Baz() { os.Setenv("A", "B") }
 `}
 
 // setup contains common code for loading test packages.
@@ -74,9 +75,10 @@ func testAnalysis(t *testing.T, omitPaths bool) {
 	})
 	expected := &cpb.CapabilityInfoList{
 		CapabilityInfo: []*cpb.CapabilityInfo{{
-			PackageName: proto.String("testlib"),
-			Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
-			DepPath:     proto.String("testlib.Bar os.Getpid"),
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+			CapabilityName: proto.String("READ_SYSTEM_STATE"),
+			DepPath:        proto.String("testlib.Bar os.Getpid"),
 			Path: []*cpb.Function{
 				&cpb.Function{Name: proto.String("testlib.Bar"), Package: proto.String("testlib")},
 				&cpb.Function{Name: proto.String("os.Getpid"), Package: proto.String("os")},
@@ -84,12 +86,24 @@ func testAnalysis(t *testing.T, omitPaths bool) {
 			PackageDir:     proto.String("testlib"),
 			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
 		}, {
-			PackageName: proto.String("testlib"),
-			Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
-			DepPath:     proto.String("testlib.Foo os.Getpid"),
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+			CapabilityName: proto.String("READ_SYSTEM_STATE"),
+			DepPath:        proto.String("testlib.Foo os.Getpid"),
 			Path: []*cpb.Function{
 				&cpb.Function{Name: proto.String("testlib.Foo"), Package: proto.String("testlib")},
 				&cpb.Function{Name: proto.String("os.Getpid"), Package: proto.String("os")},
+			},
+			PackageDir:     proto.String("testlib"),
+			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
+		}, {
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE.Enum(),
+			CapabilityName: proto.String("MODIFY_SYSTEM_STATE/ENV"),
+			DepPath:        proto.String("testlib.Baz os.Setenv"),
+			Path: []*cpb.Function{
+				&cpb.Function{Name: proto.String("testlib.Baz"), Package: proto.String("testlib")},
+				&cpb.Function{Name: proto.String("os.Setenv"), Package: proto.String("os")},
 			},
 			PackageDir:     proto.String("testlib"),
 			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
@@ -125,7 +139,7 @@ func TestGraph(t *testing.T) {
 	}
 	nodes := make(map[string]struct{})
 	calls := make(map[[2]string]struct{})
-	caps := make(map[string][]cpb.Capability)
+	caps := make(map[string][]string)
 	CapabilityGraph(pkgs, queriedPackages,
 		&Config{
 			Classifier:     interesting.DefaultClassifier(),
@@ -137,7 +151,7 @@ func TestGraph(t *testing.T) {
 		func(edge *callgraph.Edge) {
 			calls[[2]string{edge.Caller.Func.String(), edge.Callee.Func.String()}] = struct{}{}
 		},
-		func(fn *callgraph.Node, c cpb.Capability) {
+		func(fn *callgraph.Node, c string) {
 			f := fn.Func.String()
 			caps[f] = append(caps[f], c)
 		},
@@ -145,14 +159,18 @@ func TestGraph(t *testing.T) {
 	expectedNodes := map[string]struct{}{
 		"testlib.Foo": {},
 		"testlib.Bar": {},
+		"testlib.Baz": {},
 		"os.Getpid":   {},
+		"os.Setenv":   {},
 	}
 	expectedCalls := map[[2]string]struct{}{
 		{"testlib.Foo", "os.Getpid"}: {},
 		{"testlib.Bar", "os.Getpid"}: {},
+		{"testlib.Baz", "os.Setenv"}: {},
 	}
-	expectedCaps := map[string][]cpb.Capability{
-		"os.Getpid": {cpb.Capability_CAPABILITY_READ_SYSTEM_STATE},
+	expectedCaps := map[string][]string{
+		"os.Getpid": {"READ_SYSTEM_STATE"},
+		"os.Setenv": {"MODIFY_SYSTEM_STATE/ENV"},
 	}
 	if !reflect.DeepEqual(nodes, expectedNodes) {
 		t.Errorf("CapabilityGraph(%v): got nodes %v want %v",
@@ -173,13 +191,13 @@ func TestGraph(t *testing.T) {
 type testClassifier struct {
 	// functions is a map from {package name, function name} to the capability
 	// the classifier should return.
-	functions map[[2]string]cpb.Capability
+	functions map[[2]string]string
 	// ignoredEdges is a set of {caller, callee} pairs denoting callgraph edges
 	// the classifier thinks should be ignored.
 	ignoredEdges map[[2]string]struct{}
 }
 
-func (t *testClassifier) FunctionCategory(pkg string, name string) cpb.Capability {
+func (t *testClassifier) FunctionCategory(pkg string, name string) string {
 	return t.functions[[2]string{pkg, name}]
 }
 
@@ -192,8 +210,8 @@ func (t *testClassifier) IncludeCall(edge *callgraph.Edge) bool {
 
 var testClassifier1 = testClassifier{
 	// Only categorize os.IsExist as having a capability.
-	functions: map[[2]string]cpb.Capability{
-		{"os", "os.IsExist"}: cpb.Capability_CAPABILITY_FILES,
+	functions: map[[2]string]string{
+		{"os", "os.IsExist"}: "FILES",
 	},
 	// Exclude calls from A to C.
 	ignoredEdges: map[[2]string]struct{}{
@@ -215,8 +233,9 @@ func TestAnalysisWithClassifier(t *testing.T) {
 	})
 	expected := &cpb.CapabilityInfoList{
 		CapabilityInfo: []*cpb.CapabilityInfo{{
-			PackageName: proto.String("testlib"),
-			Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+			CapabilityName: proto.String("FILES"),
 			Path: []*cpb.Function{
 				&cpb.Function{Name: proto.String("testlib.A"), Package: proto.String("testlib")},
 				&cpb.Function{Name: proto.String("testlib.B"), Package: proto.String("testlib")},
@@ -226,8 +245,9 @@ func TestAnalysisWithClassifier(t *testing.T) {
 			PackageDir:     proto.String("testlib"),
 			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
 		}, {
-			PackageName: proto.String("testlib"),
-			Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+			CapabilityName: proto.String("FILES"),
 			Path: []*cpb.Function{
 				&cpb.Function{Name: proto.String("testlib.B"), Package: proto.String("testlib")},
 				&cpb.Function{Name: proto.String("testlib.C"), Package: proto.String("testlib")},
@@ -236,8 +256,9 @@ func TestAnalysisWithClassifier(t *testing.T) {
 			PackageDir:     proto.String("testlib"),
 			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
 		}, {
-			PackageName: proto.String("testlib"),
-			Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+			CapabilityName: proto.String("FILES"),
 			Path: []*cpb.Function{
 				&cpb.Function{Name: proto.String("testlib.C"), Package: proto.String("testlib")},
 				&cpb.Function{Name: proto.String("os.IsExist"), Package: proto.String("os")},
@@ -274,7 +295,7 @@ func TestGraphWithClassifier(t *testing.T) {
 	}
 	nodes := make(map[string]struct{})
 	calls := make(map[[2]string]struct{})
-	caps := make(map[string][]cpb.Capability)
+	caps := make(map[string][]string)
 	CapabilityGraph(pkgs, queriedPackages,
 		&Config{
 			Classifier:     &testClassifier1,
@@ -286,7 +307,7 @@ func TestGraphWithClassifier(t *testing.T) {
 		func(edge *callgraph.Edge) {
 			calls[[2]string{edge.Caller.Func.String(), edge.Callee.Func.String()}] = struct{}{}
 		},
-		func(fn *callgraph.Node, c cpb.Capability) {
+		func(fn *callgraph.Node, c string) {
 			f := fn.Func.String()
 			caps[f] = append(caps[f], c)
 		},
@@ -302,8 +323,8 @@ func TestGraphWithClassifier(t *testing.T) {
 		{"testlib.B", "testlib.C"}:  {},
 		{"testlib.C", "os.IsExist"}: {},
 	}
-	expectedCaps := map[string][]cpb.Capability{
-		"os.IsExist": {cpb.Capability_CAPABILITY_FILES},
+	expectedCaps := map[string][]string{
+		"os.IsExist": {"FILES"},
 	}
 	if !reflect.DeepEqual(nodes, expectedNodes) {
 		t.Errorf("CapabilityGraph(%v): got nodes %v want %v",
@@ -333,16 +354,30 @@ func TestAnalysisPackageGranularity(t *testing.T) {
 		Granularity:    GranularityPackage,
 	})
 	expected := &cpb.CapabilityInfoList{
-		CapabilityInfo: []*cpb.CapabilityInfo{{
-			PackageName: proto.String("testlib"),
-			Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
-			Path: []*cpb.Function{
-				&cpb.Function{Name: proto.String("testlib.Bar"), Package: proto.String("testlib")},
-				&cpb.Function{Name: proto.String("os.Getpid"), Package: proto.String("os")},
+		CapabilityInfo: []*cpb.CapabilityInfo{
+			{
+				PackageName:    proto.String("testlib"),
+				Capability:     cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+				CapabilityName: proto.String("READ_SYSTEM_STATE"),
+				Path: []*cpb.Function{
+					&cpb.Function{Name: proto.String("testlib.Bar"), Package: proto.String("testlib")},
+					&cpb.Function{Name: proto.String("os.Getpid"), Package: proto.String("os")},
+				},
+				PackageDir:     proto.String("testlib"),
+				CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
 			},
-			PackageDir:     proto.String("testlib"),
-			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
-		}},
+			{
+				PackageName:    proto.String("testlib"),
+				Capability:     cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE.Enum(),
+				CapabilityName: proto.String("MODIFY_SYSTEM_STATE/ENV"),
+				Path: []*cpb.Function{
+					&cpb.Function{Name: proto.String("testlib.Baz"), Package: proto.String("testlib")},
+					&cpb.Function{Name: proto.String("os.Setenv"), Package: proto.String("os")},
+				},
+				PackageDir:     proto.String("testlib"),
+				CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_DIRECT.Enum(),
+			},
+		},
 	}
 	opts := []cmp.Option{
 		protocmp.Transform(),
@@ -362,13 +397,13 @@ func TestAnalysisPackageGranularity(t *testing.T) {
 func TestNewCapabilitySet(t *testing.T) {
 	for _, test := range []struct {
 		list             string
-		wantCapabilities map[cpb.Capability]struct{}
+		wantCapabilities map[string]struct{}
 		wantNegated      bool
 	}{
 		{
 			list: "NETWORK",
-			wantCapabilities: map[cpb.Capability]struct{}{
-				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
+			wantCapabilities: map[string]struct{}{
+				"NETWORK": struct{}{},
 			},
 			wantNegated: false,
 		},
@@ -379,50 +414,50 @@ func TestNewCapabilitySet(t *testing.T) {
 		},
 		{
 			list: "-NETWORK",
-			wantCapabilities: map[cpb.Capability]struct{}{
-				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
+			wantCapabilities: map[string]struct{}{
+				"NETWORK": struct{}{},
 			},
 			wantNegated: true,
 		},
 		{
 			list: "CAPABILITY_NETWORK",
-			wantCapabilities: map[cpb.Capability]struct{}{
-				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
+			wantCapabilities: map[string]struct{}{
+				"NETWORK": struct{}{},
 			},
 			wantNegated: false,
 		},
 		{
 			list: "NETWORK,FILES",
-			wantCapabilities: map[cpb.Capability]struct{}{
-				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
-				cpb.Capability_CAPABILITY_FILES:   struct{}{},
+			wantCapabilities: map[string]struct{}{
+				"NETWORK": struct{}{},
+				"FILES":   struct{}{},
 			},
 			wantNegated: false,
 		},
 		{
 			list: "-NETWORK,-CAPABILITY_FILES",
-			wantCapabilities: map[cpb.Capability]struct{}{
-				cpb.Capability_CAPABILITY_NETWORK: struct{}{},
-				cpb.Capability_CAPABILITY_FILES:   struct{}{},
+			wantCapabilities: map[string]struct{}{
+				"NETWORK": struct{}{},
+				"FILES":   struct{}{},
 			},
 			wantNegated: true,
 		},
 		{
 			list: "CAPABILITY_FILES,CAPABILITY_NETWORK,CAPABILITY_RUNTIME,CAPABILITY_READ_SYSTEM_STATE,CAPABILITY_MODIFY_SYSTEM_STATE,CAPABILITY_OPERATING_SYSTEM,CAPABILITY_SYSTEM_CALLS,CAPABILITY_ARBITRARY_EXECUTION,CAPABILITY_CGO,CAPABILITY_UNANALYZED,CAPABILITY_UNSAFE_POINTER,CAPABILITY_REFLECT,CAPABILITY_EXEC",
-			wantCapabilities: map[cpb.Capability]struct{}{
-				cpb.Capability_CAPABILITY_FILES:               struct{}{},
-				cpb.Capability_CAPABILITY_NETWORK:             struct{}{},
-				cpb.Capability_CAPABILITY_RUNTIME:             struct{}{},
-				cpb.Capability_CAPABILITY_READ_SYSTEM_STATE:   struct{}{},
-				cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE: struct{}{},
-				cpb.Capability_CAPABILITY_OPERATING_SYSTEM:    struct{}{},
-				cpb.Capability_CAPABILITY_SYSTEM_CALLS:        struct{}{},
-				cpb.Capability_CAPABILITY_ARBITRARY_EXECUTION: struct{}{},
-				cpb.Capability_CAPABILITY_CGO:                 struct{}{},
-				cpb.Capability_CAPABILITY_UNANALYZED:          struct{}{},
-				cpb.Capability_CAPABILITY_UNSAFE_POINTER:      struct{}{},
-				cpb.Capability_CAPABILITY_REFLECT:             struct{}{},
-				cpb.Capability_CAPABILITY_EXEC:                struct{}{},
+			wantCapabilities: map[string]struct{}{
+				"FILES":               struct{}{},
+				"NETWORK":             struct{}{},
+				"RUNTIME":             struct{}{},
+				"READ_SYSTEM_STATE":   struct{}{},
+				"MODIFY_SYSTEM_STATE": struct{}{},
+				"OPERATING_SYSTEM":    struct{}{},
+				"SYSTEM_CALLS":        struct{}{},
+				"ARBITRARY_EXECUTION": struct{}{},
+				"CGO":                 struct{}{},
+				"UNANALYZED":          struct{}{},
+				"UNSAFE_POINTER":      struct{}{},
+				"REFLECT":             struct{}{},
+				"EXEC":                struct{}{},
 			},
 			wantNegated: false,
 		},
@@ -449,9 +484,6 @@ func TestNewCapabilitySet(t *testing.T) {
 		}
 	}
 	for _, list := range []string{
-		"NOTWORK",
-		"FILES!",
-		"NETWORKFILES",
 		"-NETWORK,FILES",
 		"NETWORK,-FILES",
 		",NETWORK",
@@ -459,7 +491,6 @@ func TestNewCapabilitySet(t *testing.T) {
 		"NETWORK,,FILES",
 		",",
 		",,",
-		"\x00",
 	} {
 		_, err := NewCapabilitySet(list)
 		if err == nil {
@@ -476,10 +507,10 @@ func TestIntermediatePackages(t *testing.T) {
 		"p4/p4.go": `package p4; import "p2"; import "p3"; func Foo() { p2.Foo(); p3.Foo(); p3.Bar() }; func Bar() { }`,
 	}
 	classifier := testClassifier{
-		functions: map[[2]string]cpb.Capability{
-			{"p1", "p1.Foo"}: cpb.Capability_CAPABILITY_FILES,
-			{"p1", "p1.Bar"}: cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE,
-			{"p4", "p4.Bar"}: cpb.Capability_CAPABILITY_READ_SYSTEM_STATE,
+		functions: map[[2]string]string{
+			{"p1", "p1.Foo"}: "FILES",
+			{"p1", "p1.Bar"}: "MODIFY_SYSTEM_STATE",
+			{"p4", "p4.Bar"}: "READ_SYSTEM_STATE",
 		},
 		ignoredEdges: nil,
 	}
@@ -499,8 +530,9 @@ func TestIntermediatePackages(t *testing.T) {
 			expected: &cpb.CapabilityInfoList{
 				CapabilityInfo: []*cpb.CapabilityInfo{
 					{
-						PackageName: proto.String("p1"),
-						Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+						PackageName:    proto.String("p1"),
+						Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+						CapabilityName: proto.String("FILES"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Foo"), Package: proto.String("p4")},
 							&cpb.Function{Name: proto.String("p2.Foo"), Package: proto.String("p2")},
@@ -509,8 +541,9 @@ func TestIntermediatePackages(t *testing.T) {
 						PackageDir: proto.String("p1"),
 					},
 					{
-						PackageName: proto.String("p2"),
-						Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+						PackageName:    proto.String("p2"),
+						Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+						CapabilityName: proto.String("FILES"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Foo"), Package: proto.String("p4")},
 							&cpb.Function{Name: proto.String("p2.Foo"), Package: proto.String("p2")},
@@ -519,8 +552,9 @@ func TestIntermediatePackages(t *testing.T) {
 						PackageDir: proto.String("p2"),
 					},
 					{
-						PackageName: proto.String("p3"),
-						Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+						PackageName:    proto.String("p3"),
+						Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+						CapabilityName: proto.String("FILES"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Foo"), Package: proto.String("p4")},
 							&cpb.Function{Name: proto.String("p3.Foo"), Package: proto.String("p3")},
@@ -529,8 +563,9 @@ func TestIntermediatePackages(t *testing.T) {
 						PackageDir: proto.String("p3"),
 					},
 					{
-						PackageName: proto.String("p4"),
-						Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+						PackageName:    proto.String("p4"),
+						Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+						CapabilityName: proto.String("FILES"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Foo"), Package: proto.String("p4")},
 							&cpb.Function{Name: proto.String("p2.Foo"), Package: proto.String("p2")},
@@ -539,16 +574,18 @@ func TestIntermediatePackages(t *testing.T) {
 						PackageDir: proto.String("p4"),
 					},
 					{
-						PackageName: proto.String("p4"),
-						Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+						PackageName:    proto.String("p4"),
+						Capability:     cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+						CapabilityName: proto.String("READ_SYSTEM_STATE"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Bar"), Package: proto.String("p4")},
 						},
 						PackageDir: proto.String("p4"),
 					},
 					{
-						PackageName: proto.String("p1"),
-						Capability:  cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE.Enum(),
+						PackageName:    proto.String("p1"),
+						Capability:     cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE.Enum(),
+						CapabilityName: proto.String("MODIFY_SYSTEM_STATE"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Foo"), Package: proto.String("p4")},
 							&cpb.Function{Name: proto.String("p3.Bar"), Package: proto.String("p3")},
@@ -557,8 +594,9 @@ func TestIntermediatePackages(t *testing.T) {
 						PackageDir: proto.String("p1"),
 					},
 					{
-						PackageName: proto.String("p3"),
-						Capability:  cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE.Enum(),
+						PackageName:    proto.String("p3"),
+						Capability:     cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE.Enum(),
+						CapabilityName: proto.String("MODIFY_SYSTEM_STATE"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Foo"), Package: proto.String("p4")},
 							&cpb.Function{Name: proto.String("p3.Bar"), Package: proto.String("p3")},
@@ -567,8 +605,9 @@ func TestIntermediatePackages(t *testing.T) {
 						PackageDir: proto.String("p3"),
 					},
 					{
-						PackageName: proto.String("p4"),
-						Capability:  cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE.Enum(),
+						PackageName:    proto.String("p4"),
+						Capability:     cpb.Capability_CAPABILITY_MODIFY_SYSTEM_STATE.Enum(),
+						CapabilityName: proto.String("MODIFY_SYSTEM_STATE"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Foo"), Package: proto.String("p4")},
 							&cpb.Function{Name: proto.String("p3.Bar"), Package: proto.String("p3")},
@@ -584,8 +623,9 @@ func TestIntermediatePackages(t *testing.T) {
 			expected: &cpb.CapabilityInfoList{
 				CapabilityInfo: []*cpb.CapabilityInfo{
 					{
-						PackageName: proto.String("p4"),
-						Capability:  cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+						PackageName:    proto.String("p4"),
+						Capability:     cpb.Capability_CAPABILITY_READ_SYSTEM_STATE.Enum(),
+						CapabilityName: proto.String("READ_SYSTEM_STATE"),
 						Path: []*cpb.Function{
 							&cpb.Function{Name: proto.String("p4.Bar"), Package: proto.String("p4")},
 						},
@@ -634,8 +674,8 @@ func TestAlias(t *testing.T) {
 		"p2/p2.go": `package p2; import "p1"; func Foo() { type t = p1.T; m := t.M; m(t{}); }`,
 	}
 	classifier := testClassifier{
-		functions: map[[2]string]cpb.Capability{
-			{"p1", "p1.Foo"}: cpb.Capability_CAPABILITY_FILES,
+		functions: map[[2]string]string{
+			{"p1", "p1.Foo"}: "FILES",
 		},
 		ignoredEdges: nil,
 	}
@@ -649,8 +689,9 @@ func TestAlias(t *testing.T) {
 	expected := &cpb.CapabilityInfoList{
 		CapabilityInfo: []*cpb.CapabilityInfo{
 			{
-				PackageName: proto.String("p2"),
-				Capability:  cpb.Capability_CAPABILITY_FILES.Enum(),
+				PackageName:    proto.String("p2"),
+				Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+				CapabilityName: proto.String("FILES"),
 				Path: []*cpb.Function{
 					&cpb.Function{Name: proto.String("p2.Foo"), Package: proto.String("p2")},
 					&cpb.Function{Name: proto.String("(p2.t).M$thunk"), Package: proto.String("p1")},
