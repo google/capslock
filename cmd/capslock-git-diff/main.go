@@ -220,7 +220,7 @@ func main() {
 
 type mapKey struct {
 	key        string
-	capability cpb.Capability
+	capability string
 }
 type capabilitiesMap map[mapKey]*cpb.CapabilityInfo
 
@@ -242,7 +242,13 @@ func populateMap(cil *cpb.CapabilityInfoList, granularity string) capabilitiesMa
 		if key == "" {
 			continue
 		}
-		m[mapKey{capability: ci.GetCapability(), key: key}] = ci
+		cap := ci.GetCapabilityName()
+		if cap == "" {
+			// Support older versions of capslock that use the Capability field
+			// instead of CapabilityName.
+			cap = strings.TrimPrefix(ci.GetCapability().String(), "CAPABILITY_")
+		}
+		m[mapKey{capability: cap, key: key}] = ci
 	}
 	return m
 }
@@ -268,7 +274,7 @@ func cover(pending map[string]bool, ci *cpb.CapabilityInfo) (covered []string) {
 	return covered
 }
 
-func sortAndPrintCapabilities(cs []cpb.Capability) {
+func sortAndPrintCapabilities(cs []string) {
 	slices.Sort(cs)
 	tw := tabwriter.NewWriter(
 		os.Stdout, // output
@@ -277,30 +283,34 @@ func sortAndPrintCapabilities(cs []cpb.Capability) {
 		4,         // padding
 		' ',       // padchar
 		0)         // flags
-	capabilityDescription := map[cpb.Capability]string{
-		2:  "Access to the file system",
-		3:  "Access to the network",
-		4:  "Read or modify settings in the Go runtime",
-		5:  "Read system information, e.g. environment variables",
-		6:  "Modify system information, e.g. environment variables",
-		7:  `Call miscellaneous functions in the "os" package `,
-		8:  "Make system calls",
-		9:  "Invoke arbitrary code, e.g. assembly or go:linkname",
-		10: "Call cgo functions",
-		11: "Code that Capslock cannot effectively analyze",
-		12: "Uses unsafe.Pointer",
-		13: "Uses reflect",
-		14: "Execute other programs, usually via os/exec",
+	capabilityDescription := map[string]string{
+		"FILES":                       "Access to the file system",
+		"NETWORK":                     "Access to the network",
+		"RUNTIME":                     "Read or modify settings in the Go runtime",
+		"READ_SYSTEM_STATE":           "Read system information, e.g. environment variables",
+		"MODIFY_SYSTEM_STATE":         "Modify system state",
+		"MODIFY_SYSTEM_STATE/CHDIR":   "Change current directory",
+		"MODIFY_SYSTEM_STATE/ENV":     "Modify environment variables",
+		"MODIFY_SYSTEM_STATE/LOGGING": "Change logging configuration",
+		"MODIFY_SYSTEM_STATE/SIGNALS": "Change how operating system signals are handled",
+		"OPERATING_SYSTEM":            `Call miscellaneous functions in the "os" package `,
+		"SYSTEM_CALLS":                "Make system calls",
+		"ARBITRARY_EXECUTION":         "Invoke arbitrary code, e.g. assembly or go:linkname",
+		"CGO":                         "Call cgo functions",
+		"UNANALYZED":                  "Code that Capslock cannot effectively analyze",
+		"UNSAFE_POINTER":              "Uses unsafe.Pointer",
+		"REFLECT":                     "Uses reflect",
+		"EXEC":                        "Execute other programs, usually via os/exec",
 	}
 	for _, c := range cs {
-		fmt.Fprint(tw, "\t", cpb.Capability_name[int32(c)], ":\t", capabilityDescription[c], "\n")
+		fmt.Fprint(tw, "\t", c, ":\t", capabilityDescription[c], "\n")
 	}
 	tw.Flush()
 }
 
-func summarizeNewCapabilities(keys []mapKey, baselineMap, currentMap capabilitiesMap) (newlyUsedCapabilities, existingCapabilitiesWithNewUses []cpb.Capability) {
-	hasAnyOldUse := make(map[cpb.Capability]bool)
-	newUses := make(map[cpb.Capability]int)
+func summarizeNewCapabilities(keys []mapKey, baselineMap, currentMap capabilitiesMap) (newlyUsedCapabilities, existingCapabilitiesWithNewUses []string) {
+	hasAnyOldUse := make(map[string]bool)
+	newUses := make(map[string]int)
 	for _, key := range keys {
 		_, inBaseline := baselineMap[key]
 		_, inCurrent := currentMap[key]
@@ -382,7 +392,7 @@ func diffCapabilityInfoLists(baseline, current *cpb.CapabilityInfoList, revision
 	newlyUsedCapabilities, existingCapabilitiesWithNewUses :=
 		summarizeNewCapabilities(keys, baselineMap, currentMap)
 	// Output changes for each capability, in the order they were printed above.
-	for _, list := range [][]cpb.Capability{newlyUsedCapabilities, existingCapabilitiesWithNewUses} {
+	for _, list := range [][]string{newlyUsedCapabilities, existingCapabilitiesWithNewUses} {
 		for _, c := range list {
 			switch *granularity {
 			case "package":
