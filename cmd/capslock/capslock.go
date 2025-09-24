@@ -21,7 +21,9 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"runtime/debug"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 
 	"github.com/google/capslock/analyzer"
@@ -46,6 +48,7 @@ var (
 		`the granularity to use for comparisons, either "package" or "function".`)
 	forceLocalModule = flag.Bool("force_local_module", false, "if the requested packages cannot be loaded in the current workspace, return an error immediately, instead of trying to load them in a temporary module")
 	omitPaths        = flag.Bool("omit_paths", false, "omit example call paths from output")
+	version          = flag.Bool("version", false, "report Capslock version and exit")
 )
 
 func main() {
@@ -63,6 +66,41 @@ func main() {
 }
 
 func run() error {
+	if *version {
+		// Output version information and exit.
+		//
+		// debug.ReadBuildInfo returns build information embedded in the binary.
+		if info, ok := debug.ReadBuildInfo(); ok {
+			escape := func(s string) string {
+				// escape any control characters if they somehow made it here, but
+				// leave out the surrounding quotation marks.
+				return strings.TrimPrefix(strings.TrimSuffix(strconv.Quote(s), `"`), `"`)
+			}
+			if _, err := fmt.Printf("capslock version %s\n", escape(info.Main.Version)); err != nil {
+				return err
+			}
+			if _, err := fmt.Printf("compiled with Go version %s\n", escape(info.GoVersion)); err != nil {
+				return err
+			}
+			for _, d := range info.Deps {
+				if d.Path == "golang.org/x/tools" {
+					for d.Replace != nil {
+						d = d.Replace
+					}
+					if _, err := fmt.Printf("includes Go tools version %s\n", escape(d.Version)); err != nil {
+						return err
+					}
+					break
+				}
+			}
+		} else {
+			if _, err := fmt.Printf("capslock version unknown\n"); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
