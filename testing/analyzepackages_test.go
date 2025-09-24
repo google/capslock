@@ -463,3 +463,13 @@ func TestCompare(t *testing.T) {
 		}
 	}
 }
+
+func TestVersionFlag(t *testing.T) {
+	out, err := exec.Command(bin, "-version").CombinedOutput()
+	if err != nil {
+		t.Fatalf("running capslock: error %v output %q", err, string(out))
+	}
+	if s, want := string(out), "capslock version"; !strings.HasPrefix(s, want) {
+		t.Errorf("got %q, want prefix %q", s, want)
+	}
+}
