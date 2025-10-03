@@ -8,9 +8,12 @@ package analyzer
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"go/types"
+	"maps"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -70,6 +73,35 @@ func RunCapslock(args []string, output string, pkgs []*packages.Package, queried
 			fmt.Println(c)
 		}
 		return nil
+	} else if output == "p" || output == "package" {
+		cil := GetCapabilityInfo(pkgs, queriedPackages, config)
+		// Build a map of packages to unique capabilities.
+		capabilitiesByPackageSets := make(map[string]map[string]struct{})
+		for _, capabilityInfo := range cil.CapabilityInfo {
+			for _, path := range capabilityInfo.Path {
+				if _, ok := capabilitiesByPackageSets[*path.Package]; ok {
+					capabilitiesByPackageSets[*path.Package][capabilityInfo.Capability.String()] = struct{}{}
+				} else {
+					capabilitiesByPackageSets[*path.Package] = map[string]struct{}{
+						capabilityInfo.Capability.String(): {},
+					}
+				}
+			}
+		}
+		// Convert the per-package unique capabilities to sorted slices.
+		capabilitiesByPackageSlices := make(map[string][]string)
+		for _package, capabilities := range capabilitiesByPackageSets {
+			if components := strings.Split(_package, "/"); !strings.Contains(components[0], ".") {
+				continue // Skip standard library packages.
+			}
+			capabilitiesSlice := slices.Collect(maps.Keys(capabilities))
+			sort.Strings(capabilitiesSlice)
+			capabilitiesByPackageSlices[_package] = capabilitiesSlice
+		}
+		// Emit the per-package unique capabilities as JSON.
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(capabilitiesByPackageSlices)
 	} else if output == "v" || output == "verbose" {
 		cil := GetCapabilityStats(pkgs, queriedPackages, config)
 		ctm := template.Must(template.New("verbose.tmpl").Funcs(templateFuncMap).ParseFS(staticContent, "static/verbose.tmpl"))
