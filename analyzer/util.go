@@ -228,6 +228,18 @@ var functionsToRewrite = []matcher{
 		functionName:                "SliceStable",
 		functionTypedParameterIndex: 1,
 	},
+	&methodMatcher{
+		pkg:                         "golang.org/x/sync/errgroup",
+		typeName:                    "Group",
+		methodName:                  "Go",
+		functionTypedParameterIndex: 0,
+	},
+	&methodMatcher{
+		pkg:                         "sync",
+		typeName:                    "WaitGroup",
+		methodName:                  "Go",
+		functionTypedParameterIndex: 0,
+	},
 }
 
 type matcher interface {
