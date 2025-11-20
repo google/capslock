@@ -9,8 +9,6 @@ package interesting
 import (
 	"strings"
 	"testing"
-
-	cpb "github.com/google/capslock/proto"
 )
 
 const (
@@ -20,63 +18,67 @@ package runtime CAPABILITY_NETWORK
 # Specify package capability for a new package
 package example.com/some/package CAPABILITY_OPERATING_SYSTEM
 # Specify package capability for a new function
-func example.com/some/package.Foo CAPABILITY_FILES
+func example.com/some/package.Foo MODIFY_SYSTEM_STATE/ENV
 # Override existing function capability
 func fmt.Sprintf CAPABILITY_FILES
 `
 )
 
-
 func TestInteresting(t *testing.T) {
 	classifier := DefaultClassifier()
 	for _, c := range []struct {
 		pkg, fn string
-		want    cpb.Capability
+		want    string
 	}{
 		{
 			"os",
 			"os.Open",
-			cpb.Capability_CAPABILITY_FILES,
+			"FILES",
 		},
 		{
 			"fmt",
 			"fmt.Sprintf",
-			cpb.Capability_CAPABILITY_SAFE,
+			"SAFE",
 		},
 		{
 			"example.com/some/package",
 			"example.com/some/package.Foo",
-			cpb.Capability_CAPABILITY_UNSPECIFIED,
+			"",
 		},
 		{
 			"example.com/some/package",
 			"example.com/some/package.Foo_Cfunc_GoString",
-			cpb.Capability_CAPABILITY_CGO,
+			"CGO",
 		},
 		{
 			"os",
 			"os.SomeNewFunctionWithNoFunctionLevelCategoryYet",
-			cpb.Capability_CAPABILITY_OPERATING_SYSTEM,
+			"OPERATING_SYSTEM",
 		},
 		{
 			"runtime",
 			"runtime.SomeOtherFunctionWithNoFunctionLevelCategoryYet",
-			cpb.Capability_CAPABILITY_RUNTIME,
+			"RUNTIME",
 		},
 		{
 			"runtime",
 			"(*runtime.Func).Name",
-			cpb.Capability_CAPABILITY_SAFE,
+			"SAFE",
 		},
 		{
 			"foo",
 			"foo.Something_Cfunc_GoString",
-			cpb.Capability_CAPABILITY_CGO,
+			"CGO",
 		},
 		{
 			"foo",
 			"foo.Something",
-			cpb.Capability_CAPABILITY_UNSPECIFIED,
+			"",
+		},
+		{
+			"os",
+			"os.Setenv",
+			"MODIFY_SYSTEM_STATE/ENV",
 		},
 	} {
 		if got := classifier.FunctionCategory(c.pkg, c.fn); got != c.want {
@@ -92,37 +94,42 @@ func TestUserWithBuiltin(t *testing.T) {
 	}
 	for _, c := range []struct {
 		pkg, fn string
-		want    cpb.Capability
+		want    string
 	}{
 		{
 			"os",
 			"os.Open",
-			cpb.Capability_CAPABILITY_FILES,
+			"FILES",
 		},
 		{
 			"os",
 			"os.SomeNewFunctionWithNoFunctionLevelCategoryYet",
-			cpb.Capability_CAPABILITY_OPERATING_SYSTEM,
+			"OPERATING_SYSTEM",
 		},
 		{
 			"fmt",
 			"fmt.Sprintf",
-			cpb.Capability_CAPABILITY_FILES,
+			"FILES",
 		},
 		{
 			"example.com/some/package",
 			"example.com/some/package.Foo",
-			cpb.Capability_CAPABILITY_FILES,
+			"MODIFY_SYSTEM_STATE/ENV",
 		},
 		{
 			"example.com/some/package",
 			"example.com/some/package.OtherFoo",
-			cpb.Capability_CAPABILITY_OPERATING_SYSTEM,
+			"OPERATING_SYSTEM",
 		},
 		{
 			"runtime",
 			"runtime.SomeFunction",
-			cpb.Capability_CAPABILITY_NETWORK,
+			"NETWORK",
+		},
+		{
+			"os",
+			"os.Setenv",
+			"MODIFY_SYSTEM_STATE/ENV",
 		},
 	} {
 		if got := classifier.FunctionCategory(c.pkg, c.fn); got != c.want {
@@ -138,37 +145,42 @@ func TestUserWithoutBuiltin(t *testing.T) {
 	}
 	for _, c := range []struct {
 		pkg, fn string
-		want    cpb.Capability
+		want    string
 	}{
 		{
 			"os",
 			"os.Open",
-			cpb.Capability_CAPABILITY_UNSPECIFIED,
+			"",
 		},
 		{
 			"os",
 			"os.SomeNewFunctionWithNoFunctionLevelCategoryYet",
-			cpb.Capability_CAPABILITY_UNSPECIFIED,
+			"",
 		},
 		{
 			"fmt",
 			"fmt.Sprintf",
-			cpb.Capability_CAPABILITY_FILES,
+			"FILES",
 		},
 		{
 			"example.com/some/package",
 			"example.com/some/package.Foo",
-			cpb.Capability_CAPABILITY_FILES,
+			"MODIFY_SYSTEM_STATE/ENV",
 		},
 		{
 			"example.com/some/package",
 			"example.com/some/package.OtherFoo",
-			cpb.Capability_CAPABILITY_OPERATING_SYSTEM,
+			"OPERATING_SYSTEM",
 		},
 		{
 			"runtime",
 			"runtime.SomeFunction",
-			cpb.Capability_CAPABILITY_NETWORK,
+			"NETWORK",
+		},
+		{
+			"os",
+			"os.Setenv",
+			"",
 		},
 	} {
 		if got := classifier.FunctionCategory(c.pkg, c.fn); got != c.want {

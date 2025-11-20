@@ -42,9 +42,9 @@ func (b bfsState) next() *callgraph.Node {
 }
 
 type nodeset map[*callgraph.Node]struct{}
-type nodesetPerCapability map[cpb.Capability]nodeset
+type nodesetPerCapability map[string]nodeset
 
-func (nc nodesetPerCapability) add(cap cpb.Capability, node *callgraph.Node) {
+func (nc nodesetPerCapability) add(cap string, node *callgraph.Node) {
 	m := nc[cap]
 	if m == nil {
 		m = make(nodeset)
@@ -228,6 +228,18 @@ var functionsToRewrite = []matcher{
 		functionName:                "SliceStable",
 		functionTypedParameterIndex: 1,
 	},
+	&methodMatcher{
+		pkg:                         "golang.org/x/sync/errgroup",
+		typeName:                    "Group",
+		methodName:                  "Go",
+		functionTypedParameterIndex: 0,
+	},
+	&methodMatcher{
+		pkg:                         "sync",
+		typeName:                    "WaitGroup",
+		methodName:                  "Go",
+		functionTypedParameterIndex: 0,
+	},
 }
 
 type matcher interface {
@@ -357,18 +369,20 @@ func (m *methodMatcher) match(typeInfo *types.Info, call *ast.CallExpr) ast.Expr
 	if calleeType == nil {
 		return nil
 	}
-	if ptr, ok := calleeType.(*types.Pointer); ok {
+	if ptr, ok := types.Unalias(calleeType).(*types.Pointer); ok {
 		calleeType = ptr.Elem()
 	}
-	named, ok := calleeType.(*types.Named)
+	named, ok := types.Unalias(calleeType).(*types.Named)
 	if !ok {
 		return nil
 	}
-	if named.Obj().Pkg() != nil {
-		if pkg := named.Obj().Pkg().Path(); pkg != m.pkg {
-			// Not the right package.
-			return nil
-		}
+	if named.Obj().Pkg() == nil {
+		// Not in a package.
+		return nil
+	}
+	if pkg := named.Obj().Pkg().Path(); pkg != m.pkg {
+		// Not the right package.
+		return nil
 	}
 	if named.Obj().Name() != m.typeName {
 		// Not the right type.
@@ -550,10 +564,10 @@ func nodeToPackage(node *callgraph.Node) *types.Package {
 		if typ == nil {
 			return nil
 		}
-		if p, ok := typ.(*types.Pointer); ok {
+		if p, ok := types.Unalias(typ).(*types.Pointer); ok {
 			typ = p.Elem()
 		}
-		if n, ok := typ.(*types.Named); ok {
+		if n, ok := types.Unalias(typ).(*types.Named); ok {
 			if pkg := n.Obj().Pkg(); pkg != nil {
 				return pkg
 			}
@@ -589,6 +603,24 @@ func nodeToPackage(node *callgraph.Node) *types.Package {
 				return pkg
 			}
 		}
+	}
+	return nil
+}
+
+// oldCapability converts a capability string into a Capability enum value.
+//
+// An enum value is returned if the string matches the enum exactly, or if the
+// string is a finer-grained version, which begins with the enum followed by
+// '/'.
+//
+// If a match is not found, oldCapability returns nil.
+func oldCapability(c string) *cpb.Capability {
+	c, _, _ = strings.Cut(c, "/")
+	if cap, ok := cpb.Capability_value[c]; ok {
+		return cpb.Capability(cap).Enum()
+	}
+	if cap, ok := cpb.Capability_value["CAPABILITY_"+c]; ok {
+		return cpb.Capability(cap).Enum()
 	}
 	return nil
 }

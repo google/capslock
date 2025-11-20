@@ -11,6 +11,7 @@ import (
 	"go/types"
 	"os"
 	"sort"
+	"strings"
 	"text/tabwriter"
 
 	cpb "github.com/google/capslock/proto"
@@ -62,7 +63,7 @@ func compare(baselineFilename string, pkgs []*packages.Package, queriedPackages 
 
 type mapKey struct {
 	key        string
-	capability cpb.Capability
+	capability string
 }
 type capabilitiesMap map[mapKey]*cpb.CapabilityInfo
 
@@ -72,7 +73,14 @@ type capabilitiesMap map[mapKey]*cpb.CapabilityInfo
 func populateMap(cil *cpb.CapabilityInfoList, g Granularity) capabilitiesMap {
 	m := make(capabilitiesMap)
 	for _, ci := range cil.GetCapabilityInfo() {
-		mk := mapKey{capability: ci.GetCapability()}
+		cap := ci.GetCapabilityName()
+		if cap == "" {
+			// CapabilityName is not set.  This data might be from an old version
+			// of Capslock.  Convert the Capability enum into a string to maintain
+			// compatibility.
+			cap = strings.TrimPrefix(ci.GetCapability().String(), "CAPABILITY_")
+		}
+		mk := mapKey{capability: cap}
 		// The calculation of mk.key depends on the desired granularity.
 		switch g {
 		case GranularityPackage:

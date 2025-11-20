@@ -33,3 +33,9 @@ func Baz() int {
 	u, _ := user.Current()
 	return len(u.Username)
 }
+
+// Setenv is a test function which calls os.Setenv.
+func Setenv() int {
+	os.Setenv("A", "B")
+	return 0
+}

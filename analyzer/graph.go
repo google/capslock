@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 
-	cpb "github.com/google/capslock/proto"
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/packages"
 )
@@ -23,12 +22,12 @@ import (
 // CapabilitySet represents a set of Capslock capabilities.
 // A nil *CapabilitySet represents the set of all capabilities.
 type CapabilitySet struct {
-	capabilities map[cpb.Capability]struct{}
+	capabilities map[string]struct{}
 	negated      bool
 }
 
 // Has returns whether c is a member of cs.
-func (cs *CapabilitySet) Has(c cpb.Capability) bool {
+func (cs *CapabilitySet) Has(c string) bool {
 	if cs == nil {
 		return true
 	}
@@ -46,7 +45,7 @@ func NewCapabilitySet(cs string) (*CapabilitySet, error) {
 	if len(cs) == 0 {
 		return nil, nil
 	}
-	out := make(map[cpb.Capability]struct{})
+	out := make(map[string]struct{})
 	negated := false
 	for i, s := range strings.Split(cs, ",") {
 		if len(s) == 0 {
@@ -60,14 +59,9 @@ func NewCapabilitySet(cs string) (*CapabilitySet, error) {
 			return nil, fmt.Errorf("mix of negated and unnegated capabilities specified: %q", cs)
 		}
 		negated = neg
-		c, ok := cpb.Capability_value[s]
-		if !ok {
-			c, ok = cpb.Capability_value["CAPABILITY_"+s]
-		}
-		if !ok {
-			return nil, fmt.Errorf("unknown capability %q", s)
-		}
-		out[cpb.Capability(c)] = struct{}{}
+		// Capability strings previously would begin with "CAPABILITY_", but new
+		// ones do not.  Support the old form for backwards-compatibility.
+		out[strings.TrimPrefix(s, "CAPABILITY_")] = struct{}{}
 	}
 	return &CapabilitySet{out, negated}, nil
 }
@@ -81,8 +75,9 @@ func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 				return v.Func.String()
 			}
 			return strconv.Itoa(v.ID)
-		case cpb.Capability:
-			return v.String()
+		case string:
+			// A capability name.
+			return v
 		default:
 			panic("unexpected node type")
 		}
@@ -90,10 +85,10 @@ func graphOutput(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 	callEdge := func(edge *callgraph.Edge) {
 		gb.Edge(edge.Caller, edge.Callee)
 	}
-	capabilityEdge := func(fn *callgraph.Node, c cpb.Capability) {
+	capabilityEdge := func(fn *callgraph.Node, c string) {
 		gb.Edge(fn, c)
 	}
-	var filter func(c cpb.Capability) bool
+	var filter func(c string) bool
 	if config.CapabilitySet != nil {
 		filter = config.CapabilitySet.Has
 	}

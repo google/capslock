@@ -14,7 +14,10 @@ message CapabilityInfo {
   // The name of the package.
   optional string package_name = 1;
 
-  // Name associated with this capability.
+  // Name of the capability.
+  optional string capability_name = 7;
+
+  // An enum for the capability.  New code should use capability_name instead.
   optional Capability capability = 2;
 
   // The dependency path to where the capability is incurred.
@@ -73,6 +76,7 @@ message CapabilityCountList {
 
 message CapabilityStats {
   optional Capability capability = 1;
+  optional string capability_name = 7;
   optional string description = 2;
   optional int64 direct_count = 3;
   optional int64 transitive_count = 4;
