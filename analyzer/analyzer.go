@@ -871,5 +871,9 @@ func intermediatePackages(pkgs []*packages.Package, queriedPackages map[*types.P
 		}
 		return strings.Compare(a.GetPackageDir(), b.GetPackageDir())
 	})
-	return &cpb.CapabilityInfoList{CapabilityInfo: cis}
+	return &cpb.CapabilityInfoList{
+		CapabilityInfo: cis,
+		ModuleInfo:     collectModuleInfo(pkgs),
+		PackageInfo:    collectPackageInfo(pkgs),
+	}
 }
