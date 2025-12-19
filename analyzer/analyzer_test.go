@@ -616,6 +616,12 @@ func TestIntermediatePackages(t *testing.T) {
 						PackageDir: proto.String("p4"),
 					},
 				},
+				PackageInfo: []*cpb.PackageInfo{
+					&cpb.PackageInfo{Path: proto.String("p1")},
+					&cpb.PackageInfo{Path: proto.String("p2")},
+					&cpb.PackageInfo{Path: proto.String("p3")},
+					&cpb.PackageInfo{Path: proto.String("p4")},
+				},
 			},
 		},
 		{
@@ -631,6 +637,12 @@ func TestIntermediatePackages(t *testing.T) {
 						},
 						PackageDir: proto.String("p4"),
 					},
+				},
+				PackageInfo: []*cpb.PackageInfo{
+					&cpb.PackageInfo{Path: proto.String("p1")},
+					&cpb.PackageInfo{Path: proto.String("p2")},
+					&cpb.PackageInfo{Path: proto.String("p3")},
+					&cpb.PackageInfo{Path: proto.String("p4")},
 				},
 			},
 		},
@@ -653,7 +665,6 @@ func TestIntermediatePackages(t *testing.T) {
 				}
 				return a.GetPackageDir() < b.GetPackageDir()
 			}),
-			protocmp.IgnoreFields(&cpb.CapabilityInfoList{}, "package_info"),
 			protocmp.IgnoreFields(&cpb.CapabilityInfo{}, "dep_path"),
 			protocmp.IgnoreFields(&cpb.CapabilityInfo{}, "capability_type"),
 			protocmp.IgnoreFields(&cpb.Function{}, "site"),
