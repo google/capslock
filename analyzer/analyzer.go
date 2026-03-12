@@ -787,6 +787,50 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 				}
 			}
 		}
+		// Second pass: find alternative call paths from functions in
+		// queriedPackages to the current capability.  The BFS above only
+		// reports one path per function.  If a function has multiple
+		// outgoing call edges that can each reach the capability through
+		// different intermediate functions, the additional paths are found
+		// here.
+		var queriedNodes []*callgraph.Node
+		for w := range visited {
+			if w.Func == nil || w.Func.Package() == nil {
+				continue
+			}
+			if _, ok := queriedPackages[w.Func.Package().Pkg]; !ok {
+				continue
+			}
+			if _, ok := nodes[w]; ok {
+				continue // w is an initial capability node, already reported
+			}
+			queriedNodes = append(queriedNodes, w)
+		}
+		sort.Sort(byFunction(queriedNodes))
+		for _, w := range queriedNodes {
+			alreadyReportedCallee := visited[w].next()
+			var outEdges []*callgraph.Edge
+			for _, edge := range w.Out {
+				if !config.Classifier.IncludeCall(edge) {
+					continue
+				}
+				callee := edge.Callee
+				if callee == alreadyReportedCallee {
+					continue
+				}
+				if _, ok := visited[callee]; !ok {
+					continue
+				}
+				outEdges = append(outEdges, edge)
+			}
+			sort.Sort(byCallee(outEdges))
+			for _, edge := range outEdges {
+				origState := visited[w]
+				visited[w] = bfsState{edge: edge}
+				fn(cap, visited, w)
+				visited[w] = origState
+			}
+		}
 	}
 }
 
