@@ -7,5 +7,5 @@ Share feedback and file bugs at {{format "highlight"}}https://github.com/google/
 {{end}}{{end}}{{if .CapabilityStats}}{{range $index, $p := .CapabilityStats}}
 {{$p.CapabilityName}}: {{$p.Count}} references ({{$p.DirectCount}} direct, {{$p.TransitiveCount}} transitive)
 Example {{if eq (len $p.ExampleCallpath) 1}}function{{else}}callpath{{end}}:
-{{range $val := $p.ExampleCallpath}}  {{format "callpath-site"}}{{if $val.Site}}{{$val.Site.Filename}}:{{$val.Site.Line}}:{{$val.Site.Column}}:{{end}}{{format "callpath"}}{{$val.Name}}{{format}}
+{{range $val := $p.ExampleCallpath}}  {{format "callpath-site"}}{{if $val.Site}}{{escape $val.Site.Filename}}:{{$val.Site.Line}}:{{$val.Site.Column}}:{{end}}{{format "callpath"}}{{$val.Name}}{{format}}
 {{end}}{{end}}{{else}}{{format "nocap"}}Capslock found no capabilities in this package.{{format}}{{end}}
