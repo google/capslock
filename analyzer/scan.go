@@ -53,6 +53,7 @@ func RunCapslock(args []string, output string, pkgs []*packages.Package, queried
 	}
 	templateFuncMap := template.FuncMap{
 		"format": templateFormat,
+		"escape": escapeControlChars,
 	}
 	if output == "json" || output == "j" {
 		cil := GetCapabilityInfo(pkgs, queriedPackages, config)

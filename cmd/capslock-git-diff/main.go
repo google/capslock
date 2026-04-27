@@ -39,6 +39,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -447,11 +448,20 @@ func printCallPath(fns []*cpb.Function) {
 		0)         // flags
 	for _, f := range fns {
 		if f.Site != nil {
-			fmt.Fprint(tw, f.Site.GetFilename(), ":", f.Site.GetLine(), ":", f.Site.GetColumn())
+			fmt.Fprint(tw, escapeControlChars(f.Site.GetFilename()), ":", f.Site.GetLine(), ":", f.Site.GetColumn())
 		}
 		fmt.Fprint(tw, "\t", f.GetName(), "\n")
 	}
 	tw.Flush()
+}
+
+// escapeControlChars escapes any control characters in s, returning a string
+// safe to write to a terminal. Filenames in callpath output originate from
+// //line directives in analyzed source and may contain arbitrary bytes,
+// including ANSI escape sequences. The surrounding quotation marks added by
+// strconv.Quote are stripped.
+func escapeControlChars(s string) string {
+	return strings.TrimPrefix(strings.TrimSuffix(strconv.Quote(s), `"`), `"`)
 }
 
 func listCommits(revisions [2]string) {
