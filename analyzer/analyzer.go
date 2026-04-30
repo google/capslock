@@ -72,11 +72,11 @@ func GetClassifier(excludeUnanalyzed bool) *interesting.Classifier {
 // those packages that have a path in the callgraph to a function with a
 // capability.
 //
-// GetCapabilityInfo does not return every possible path (see the function
-// CapabilityGraph for a way to get all paths).  Which entries are returned
-// depends on the value of Config.Granularity:
+// Which entries are returned depends on the value of Config.Granularity:
 //   - For "function" granularity (the default), one CapabilityInfo is returned
-//     for each combination of capability and function in pkgs.
+//     for each call path from a function in pkgs to a capability.  If OmitPaths
+//     is set, paths cannot be distinguished in the output, so one entry is
+//     returned for each combination of capability and function in pkgs.
 //   - For "package" granularity, one CapabilityInfo is returned for each
 //     combination of capability and package in pkgs.
 //   - For "intermediate" granularity, one CapabilityInfo is returned for each
@@ -94,7 +94,11 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 		*ssa.Function // used for sorting
 	}
 	var caps []output
-	forEachPath(pkgs, queriedPackages,
+	pathFn := forEachPath
+	if config.Granularity == GranularityFunction && !config.OmitPaths {
+		pathFn = forEachSimplePath
+	}
+	pathFn(pkgs, queriedPackages,
 		func(cap string, nodes bfsStateMap, v *callgraph.Node) {
 			i := 0
 			c := cpb.CapabilityInfo{}
@@ -137,7 +141,10 @@ func GetCapabilityInfo(pkgs []*packages.Package, queriedPackages map[*types.Pack
 		if x, y := caps[i].CapabilityInfo.GetCapability(), caps[j].CapabilityInfo.GetCapability(); x != y {
 			return x < y
 		}
-		return funcCompare(caps[i].Function, caps[j].Function) < 0
+		if c := funcCompare(caps[i].Function, caps[j].Function); c != 0 {
+			return c < 0
+		}
+		return caps[i].CapabilityInfo.GetDepPath() < caps[j].CapabilityInfo.GetDepPath()
 	})
 	if config.Granularity == GranularityPackage {
 		// Keep only the first entry in the sorted list for each (capability, package) pair.
@@ -787,12 +794,34 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 				}
 			}
 		}
-		// Second pass: find alternative call paths from functions in
-		// queriedPackages to the current capability.  The BFS above only
-		// reports one path per function.  If a function has multiple
-		// outgoing call edges that can each reach the capability through
-		// different intermediate functions, the additional paths are found
-		// here.
+	}
+}
+
+// forEachSimplePath calls fn once for each simple call path from a function in
+// queriedPackages to a function with the current capability.
+//
+// It first runs the same backward search as forEachPath to find nodes that can
+// reach the capability, then walks forward through only those nodes.  The
+// per-callback bfsStateMap contains the edges for exactly one path.
+func forEachSimplePath(pkgs []*packages.Package, queriedPackages map[*types.Package]struct{},
+	fn func(cap string, nodes bfsStateMap, v *callgraph.Node), config *Config,
+) {
+	safe, nodesByCapability, extraNodesByCapability := getPackageNodesWithCapability(pkgs, config)
+	nodesByCapability, allNodesWithExplicitCapability := mergeCapabilities(nodesByCapability, extraNodesByCapability)
+	extraNodesByCapability = nil // we don't use extraNodesByCapability again.
+	var caps []string
+	for cap := range nodesByCapability {
+		caps = append(caps, cap)
+	}
+	sort.Strings(caps)
+	for _, cap := range caps {
+		nodes := nodesByCapability[cap]
+		visited := searchBackwardsFromCapabilities(
+			nodesetPerCapability{cap: nodes},
+			safe,
+			allNodesWithExplicitCapability,
+			config.Classifier)
+
 		var queriedNodes []*callgraph.Node
 		for w := range visited {
 			if w.Func == nil || w.Func.Package() == nil {
@@ -801,37 +830,73 @@ func forEachPath(pkgs []*packages.Package, queriedPackages map[*types.Package]st
 			if _, ok := queriedPackages[w.Func.Package().Pkg]; !ok {
 				continue
 			}
-			if _, ok := nodes[w]; ok {
-				continue // w is an initial capability node, already reported
-			}
 			queriedNodes = append(queriedNodes, w)
 		}
 		sort.Sort(byFunction(queriedNodes))
 		for _, w := range queriedNodes {
-			alreadyReportedCallee := visited[w].next()
-			var outEdges []*callgraph.Edge
-			for _, edge := range w.Out {
-				if !config.Classifier.IncludeCall(edge) {
-					continue
-				}
-				callee := edge.Callee
-				if callee == alreadyReportedCallee {
-					continue
-				}
-				if _, ok := visited[callee]; !ok {
-					continue
-				}
-				outEdges = append(outEdges, edge)
-			}
-			sort.Sort(byCallee(outEdges))
-			for _, edge := range outEdges {
-				origState := visited[w]
-				visited[w] = bfsState{edge: edge}
-				fn(cap, visited, w)
-				visited[w] = origState
-			}
+			forEachSimplePathFrom(cap, w, nodes, visited, config.Classifier, fn)
 		}
 	}
+}
+
+func forEachSimplePathFrom(cap string, start *callgraph.Node, targetNodes nodeset,
+	canReachTarget bfsStateMap, classifier Classifier,
+	fn func(cap string, nodes bfsStateMap, v *callgraph.Node),
+) {
+	var path []*callgraph.Edge
+	onPath := make(nodeset)
+	var walk func(*callgraph.Node)
+	walk = func(v *callgraph.Node) {
+		if _, ok := targetNodes[v]; ok {
+			pathState := make(bfsStateMap, len(path)+1)
+			for _, edge := range path {
+				pathState[edge.Caller] = bfsState{edge: edge}
+			}
+			pathState[v] = bfsState{}
+			fn(cap, pathState, start)
+			return
+		}
+		onPath[v] = struct{}{}
+		defer delete(onPath, v)
+
+		for _, edge := range reachableOutgoingEdges(v, canReachTarget, classifier) {
+			if _, ok := onPath[edge.Callee]; ok {
+				continue
+			}
+			path = append(path, edge)
+			walk(edge.Callee)
+			path = path[:len(path)-1]
+		}
+	}
+	walk(start)
+}
+
+func reachableOutgoingEdges(v *callgraph.Node, canReachTarget bfsStateMap, classifier Classifier) []*callgraph.Edge {
+	var outEdges []*callgraph.Edge
+	for _, edge := range v.Out {
+		if !classifier.IncludeCall(edge) {
+			continue
+		}
+		if edge.Callee == nil || edge.Callee.Func == nil {
+			continue
+		}
+		if _, ok := canReachTarget[edge.Callee]; !ok {
+			continue
+		}
+		outEdges = append(outEdges, edge)
+	}
+	sort.Sort(byCallee(outEdges))
+	// The JSON path uses function names, so multiple callsites to the same
+	// callee would produce duplicate-looking paths.  Keep the first callsite in
+	// source order, matching CapabilityGraph's node-edge behavior.
+	deduped := outEdges[:0]
+	for _, edge := range outEdges {
+		if len(deduped) != 0 && edge.Callee == deduped[len(deduped)-1].Callee {
+			continue
+		}
+		deduped = append(deduped, edge)
+	}
+	return deduped
 }
 
 // intermediatePackages returns a CapabilityInfo for each unique (P, C) pair

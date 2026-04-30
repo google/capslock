@@ -285,6 +285,112 @@ func TestAnalysisWithClassifier(t *testing.T) {
 	}
 }
 
+func TestAnalysisReportsPathsThatDivergeAfterIntermediateCall(t *testing.T) {
+	filemap := map[string]string{
+		"example.com/testlib/testlib.go": `package testlib
+
+import "example.com/dep"
+
+func A() { B() }
+func B() {
+	dep.C()
+	dep.D()
+}
+`,
+		"example.com/dep/dep.go": `package dep
+
+func C() {}
+func D() {}
+`,
+	}
+	classifier := testClassifier{
+		functions: map[[2]string]string{
+			{"example.com/dep", "example.com/dep.C"}: "FILES",
+			{"example.com/dep", "example.com/dep.D"}: "FILES",
+		},
+		ignoredEdges: nil,
+	}
+	pkgs, queriedPackages, cleanup, err := setup(filemap, "example.com/testlib")
+	if cleanup != nil {
+		defer cleanup()
+	}
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	cil := GetCapabilityInfo(pkgs, queriedPackages, &Config{
+		Classifier:     &classifier,
+		DisableBuiltin: true,
+	})
+	expected := &cpb.CapabilityInfoList{
+		CapabilityInfo: []*cpb.CapabilityInfo{{
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+			CapabilityName: proto.String("FILES"),
+			DepPath:        proto.String("example.com/testlib.A example.com/testlib.B example.com/dep.C"),
+			Path: []*cpb.Function{
+				&cpb.Function{Name: proto.String("example.com/testlib.A"), Package: proto.String("example.com/testlib")},
+				&cpb.Function{Name: proto.String("example.com/testlib.B"), Package: proto.String("example.com/testlib")},
+				&cpb.Function{Name: proto.String("example.com/dep.C"), Package: proto.String("example.com/dep")},
+			},
+			PackageDir:     proto.String("example.com/testlib"),
+			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_TRANSITIVE.Enum(),
+		}, {
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+			CapabilityName: proto.String("FILES"),
+			DepPath:        proto.String("example.com/testlib.A example.com/testlib.B example.com/dep.D"),
+			Path: []*cpb.Function{
+				&cpb.Function{Name: proto.String("example.com/testlib.A"), Package: proto.String("example.com/testlib")},
+				&cpb.Function{Name: proto.String("example.com/testlib.B"), Package: proto.String("example.com/testlib")},
+				&cpb.Function{Name: proto.String("example.com/dep.D"), Package: proto.String("example.com/dep")},
+			},
+			PackageDir:     proto.String("example.com/testlib"),
+			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_TRANSITIVE.Enum(),
+		}, {
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+			CapabilityName: proto.String("FILES"),
+			DepPath:        proto.String("example.com/testlib.B example.com/dep.C"),
+			Path: []*cpb.Function{
+				&cpb.Function{Name: proto.String("example.com/testlib.B"), Package: proto.String("example.com/testlib")},
+				&cpb.Function{Name: proto.String("example.com/dep.C"), Package: proto.String("example.com/dep")},
+			},
+			PackageDir:     proto.String("example.com/testlib"),
+			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_TRANSITIVE.Enum(),
+		}, {
+			PackageName:    proto.String("testlib"),
+			Capability:     cpb.Capability_CAPABILITY_FILES.Enum(),
+			CapabilityName: proto.String("FILES"),
+			DepPath:        proto.String("example.com/testlib.B example.com/dep.D"),
+			Path: []*cpb.Function{
+				&cpb.Function{Name: proto.String("example.com/testlib.B"), Package: proto.String("example.com/testlib")},
+				&cpb.Function{Name: proto.String("example.com/dep.D"), Package: proto.String("example.com/dep")},
+			},
+			PackageDir:     proto.String("example.com/testlib"),
+			CapabilityType: cpb.CapabilityType_CAPABILITY_TYPE_TRANSITIVE.Enum(),
+		}},
+	}
+	opts := []cmp.Option{
+		protocmp.Transform(),
+		protocmp.SortRepeated(func(a, b *cpb.CapabilityInfo) bool {
+			return a.GetDepPath() < b.GetDepPath()
+		}),
+		protocmp.IgnoreFields(&cpb.CapabilityInfoList{}, "package_info"),
+		protocmp.IgnoreFields(&cpb.Function{}, "site"),
+	}
+	if diff := cmp.Diff(expected, cil, opts...); diff != "" {
+		t.Errorf("GetCapabilityInfo: got %v, want %v; diff %s", cil, expected, diff)
+	}
+
+	counts := GetCapabilityCounts(pkgs, queriedPackages, &Config{
+		Classifier:     &classifier,
+		DisableBuiltin: true,
+	})
+	if got := counts.CapabilityCounts["FILES"]; got != 2 {
+		t.Errorf("GetCapabilityCounts: FILES count = %d, want 2", got)
+	}
+}
+
 func TestGraphWithClassifier(t *testing.T) {
 	pkgs, queriedPackages, cleanup, err := setup(filemap, "testlib")
 	if cleanup != nil {
