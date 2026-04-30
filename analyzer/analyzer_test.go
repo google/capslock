@@ -391,6 +391,105 @@ func D() {}
 	}
 }
 
+func TestGraphJSONForSingleFunction(t *testing.T) {
+	filemap := map[string]string{
+		"example.com/testlib/testlib.go": `package testlib
+
+import "example.com/dep"
+
+func A() { B() }
+func B() {
+	dep.C()
+	dep.D()
+}
+`,
+		"example.com/dep/dep.go": `package dep
+
+func C() {}
+func D() {}
+`,
+	}
+	classifier := testClassifier{
+		functions: map[[2]string]string{
+			{"example.com/dep", "example.com/dep.C"}: "FILES",
+			{"example.com/dep", "example.com/dep.D"}: "FILES",
+		},
+		ignoredEdges: nil,
+	}
+	pkgs, queriedPackages, cleanup, err := setup(filemap, "example.com/testlib")
+	if cleanup != nil {
+		defer cleanup()
+	}
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	out, err := buildGraphJSON(pkgs, queriedPackages, &Config{
+		Classifier:     &classifier,
+		DisableBuiltin: true,
+		GraphFunction:  "example.com/testlib.A",
+	})
+	if err != nil {
+		t.Fatalf("buildGraphJSON: %v", err)
+	}
+	if got := len(out.Graphs); got != 1 {
+		t.Fatalf("buildGraphJSON returned %d graphs, want 1", got)
+	}
+	graph := out.Graphs[0]
+	if graph.Root != "example.com/testlib.A" {
+		t.Errorf("graph.Root = %q, want example.com/testlib.A", graph.Root)
+	}
+	if !reflect.DeepEqual(graph.Capabilities, []string{"FILES"}) {
+		t.Errorf("graph.Capabilities = %v, want [FILES]", graph.Capabilities)
+	}
+
+	nodes := make(map[string]string)
+	for _, node := range graph.Nodes {
+		nodes[node.ID] = node.Kind
+	}
+	expectedNodes := map[string]string{
+		"CAPABILITY_FILES":      "capability",
+		"example.com/dep.C":     "function",
+		"example.com/dep.D":     "function",
+		"example.com/testlib.A": "function",
+		"example.com/testlib.B": "function",
+	}
+	if !reflect.DeepEqual(nodes, expectedNodes) {
+		t.Errorf("graph nodes = %v, want %v", nodes, expectedNodes)
+	}
+
+	edges := make(map[[3]string]struct{})
+	for _, edge := range graph.Edges {
+		edges[[3]string{edge.From, edge.To, edge.Kind}] = struct{}{}
+	}
+	expectedEdges := map[[3]string]struct{}{
+		{"example.com/testlib.A", "example.com/testlib.B", "call"}: {},
+		{"example.com/testlib.B", "example.com/dep.C", "call"}:     {},
+		{"example.com/testlib.B", "example.com/dep.D", "call"}:     {},
+		{"example.com/dep.C", "CAPABILITY_FILES", "capability"}:    {},
+		{"example.com/dep.D", "CAPABILITY_FILES", "capability"}:    {},
+	}
+	if !reflect.DeepEqual(edges, expectedEdges) {
+		t.Errorf("graph edges = %v, want %v", edges, expectedEdges)
+	}
+
+	out, err = buildGraphJSON(pkgs, queriedPackages, &Config{
+		Classifier:       &classifier,
+		DisableBuiltin:   true,
+		GraphPerFunction: true,
+	})
+	if err != nil {
+		t.Fatalf("buildGraphJSON with GraphPerFunction: %v", err)
+	}
+	var roots []string
+	for _, graph := range out.Graphs {
+		roots = append(roots, graph.Root)
+	}
+	if !reflect.DeepEqual(roots, []string{"example.com/testlib.A", "example.com/testlib.B"}) {
+		t.Errorf("per-function graph roots = %v, want [example.com/testlib.A example.com/testlib.B]", roots)
+	}
+}
+
 func TestGraphWithClassifier(t *testing.T) {
 	pkgs, queriedPackages, cleanup, err := setup(filemap, "testlib")
 	if cleanup != nil {

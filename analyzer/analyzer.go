@@ -34,6 +34,12 @@ type Config struct {
 	// CapabilitySet is the set of capabilities to use for graph output mode.
 	// If CapabilitySet is nil, all capabilities are used.
 	CapabilitySet *CapabilitySet
+	// GraphFunction limits graph-json output to paths starting at the named
+	// function.  The name must match the call graph function name exactly.
+	GraphFunction string
+	// GraphPerFunction emits a separate graph-json graph for each reachable
+	// function in the queried packages.
+	GraphPerFunction bool
 	// OmitPaths disables output of example call paths.
 	OmitPaths bool
 }
