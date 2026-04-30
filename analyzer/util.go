@@ -12,6 +12,7 @@ import (
 	"go/types"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	cpb "github.com/google/capslock/proto"
@@ -535,6 +536,15 @@ func programName() string {
 		return path.Base(a[0])
 	}
 	return "capslock"
+}
+
+// escapeControlChars escapes any control characters in s, returning a string
+// safe to write to a terminal. Strings parsed from analyzed source (notably
+// filenames originating from //line directives) can contain arbitrary bytes,
+// including ANSI escape sequences. The surrounding quotation marks added by
+// strconv.Quote are stripped.
+func escapeControlChars(s string) string {
+	return strings.TrimPrefix(strings.TrimSuffix(strconv.Quote(s), `"`), `"`)
 }
 
 // addFunction adds an entry to *fns for the given node and edge.

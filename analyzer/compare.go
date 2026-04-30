@@ -159,7 +159,7 @@ func printCallPath(fns []*cpb.Function) {
 		0)         // flags
 	for _, f := range fns {
 		if f.Site != nil {
-			fmt.Fprint(tw, f.Site.GetFilename(), ":", f.Site.GetLine(), ":", f.Site.GetColumn())
+			fmt.Fprint(tw, escapeControlChars(f.Site.GetFilename()), ":", f.Site.GetLine(), ":", f.Site.GetColumn())
 		}
 		fmt.Fprint(tw, "\t", f.GetName(), "\n")
 	}
