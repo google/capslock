@@ -11,6 +11,9 @@ func (*crypto/x509.Certificate).checkNameConstraints CAPABILITY_SAFE
 func crypto/cipher.xorBytesSSE2 CAPABILITY_SAFE
 func crypto/ecdh.init CAPABILITY_SAFE
 func crypto/ecdsa.init CAPABILITY_SAFE
+func crypto/fips140.isBypassed CAPABILITY_SAFE
+func crypto/fips140.setBypass CAPABILITY_SAFE
+func crypto/fips140.unsetBypass CAPABILITY_SAFE
 func crypto/hmac.init CAPABILITY_SAFE
 func crypto/internal/boring.init CAPABILITY_SAFE
 func crypto/internal/fips.CAST CAPABILITY_SAFE
@@ -22,10 +25,12 @@ func crypto/internal/fips140hash.Unwrap CAPABILITY_SAFE
 func crypto/internal/fips140only.init CAPABILITY_SAFE
 func crypto/internal/fips140/drbg.Read CAPABILITY_SAFE
 func crypto/internal/fips140/drbg.init CAPABILITY_SAFE
+func crypto/internal/fips140/drbg.init$1 CAPABILITY_SAFE
 func crypto/internal/fips140/ecdh.init$1 CAPABILITY_SAFE
 func crypto/internal/nistec.init CAPABILITY_SAFE
 func crypto/internal/sysrand.fatal CAPABILITY_SAFE
 func crypto/internal/sysrand.init CAPABILITY_SAFE
+func crypto/internal/sysrand.urandomRead$1 CAPABILITY_SAFE
 func crypto/md5.init CAPABILITY_SAFE
 func crypto/rand.Read CAPABILITY_SAFE
 func crypto/rand.fatal CAPABILITY_SAFE
@@ -47,9 +52,28 @@ func crypto/x509.init CAPABILITY_SAFE
 func crypto/x509.loadSystemRoots CAPABILITY_SAFE
 func (*crypto/x509.CertPool).AppendCertsFromPEM$1 CAPABILITY_SAFE
 
+func database/sql.init CAPABILITY_SAFE
+
+func database/sql/driver.init CAPABILITY_SAFE
+
+func encoding/gob.init CAPABILITY_SAFE
+
 func encoding/json.init CAPABILITY_SAFE
 
+func encoding/json/v2.init CAPABILITY_SAFE
+func encoding/json/v2.makeArrayArshaler$1 CAPABILITY_SAFE
+func encoding/json/v2.makeMapArshaler$1 CAPABILITY_SAFE
+func encoding/json/v2.makePointerArshaler$1 CAPABILITY_SAFE
+func encoding/json/v2.makeSliceArshaler$1 CAPABILITY_SAFE
+func encoding/json/v2.makeStructArshaler$1 CAPABILITY_SAFE
+
+func encoding/xml.init CAPABILITY_SAFE
+
+func go/build.init CAPABILITY_SAFE
+
 func go/internal/srcimporter.setUsesCgo CAPABILITY_SAFE
+
+func html/template.init CAPABILITY_SAFE
 
 func internal/abi.FuncPCABI0 CAPABILITY_SAFE
 func internal/abi.FuncPCABIInternal CAPABILITY_SAFE
@@ -66,13 +90,25 @@ func internal/coverage/cfile.getCovCounterList CAPABILITY_SAFE
 
 func internal/godebug.init CAPABILITY_SAFE
 func (*internal/godebug.Setting).register CAPABILITY_SAFE
+func (*internal/godebug.Setting).IncNonDefault CAPABILITY_SAFE
 func (*internal/godebug.Setting).Value CAPABILITY_SAFE
 
 func (*internal/bisect.atomicPointerDedup).CompareAndSwap CAPABILITY_SAFE
 func (*internal/bisect.atomicPointerDedup).Load CAPABILITY_SAFE
 
+func internal/exportdata.lookupGorootExport$1$1 CAPABILITY_SAFE
+
+func (*internal/lazyregexp.Regexp).build CAPABILITY_SAFE
+
 func internal/runtime/atomic.Casint32 CAPABILITY_SAFE
+func internal/runtime/atomic.LoadAcquintptr CAPABILITY_SAFE
+func internal/runtime/atomic.StoreReluintptr CAPABILITY_SAFE
 func internal/runtime/atomic.Storeint32 CAPABILITY_SAFE
+
+func internal/strconv.float32bits CAPABILITY_SAFE
+func internal/strconv.float32frombits CAPABILITY_SAFE
+func internal/strconv.float64bits CAPABILITY_SAFE
+func internal/strconv.float64frombits CAPABILITY_SAFE
 
 func internal/syscall/unix.init CAPABILITY_SAFE
 
@@ -96,6 +132,8 @@ func maps.values CAPABILITY_SAFE
 func math/rand.fastrand64 CAPABILITY_SAFE
 func math/rand.runtime_rand CAPABILITY_SAFE
 func math/rand/v2.runtime_rand CAPABILITY_SAFE
+
+func mime.initMime CAPABILITY_SAFE
 
 func mime/multipart.readMIMEHeader CAPABILITY_UNANALYZED # uses linkname
 
@@ -142,9 +180,15 @@ func net.ResolveTCPAddr CAPABILITY_NETWORK
 func net.ResolveUDPAddr CAPABILITY_NETWORK
 func net.ResolveUnixAddr CAPABILITY_NETWORK
 func net.SplitHostPort CAPABILITY_SAFE
+func net.TCPAddrFromAddrPort CAPABILITY_SAFE
+func net.acquireThread$1 CAPABILITY_SAFE
 func net.init CAPABILITY_SAFE
 func net.init$6 CAPABILITY_SAFE
+func net.initConfVal CAPABILITY_SAFE
+func net.initMPTCPavailable CAPABILITY_SAFE
 func net.isConnError CAPABILITY_SAFE
+func net.listenerBacklog$1 CAPABILITY_SAFE
+func net.readServices CAPABILITY_SAFE
 func (*net.AddrError).Error CAPABILITY_SAFE
 func (*net.AddrError).Temporary CAPABILITY_SAFE
 func (*net.AddrError).Timeout CAPABILITY_SAFE
@@ -198,6 +242,7 @@ func (*net.UDPAddr).Network CAPABILITY_SAFE
 func (*net.UDPAddr).String CAPABILITY_SAFE
 func (*net.UnixAddr).Network CAPABILITY_SAFE
 func (*net.UnixAddr).String CAPABILITY_SAFE
+func (*net.UnixListener).close$1 CAPABILITY_SAFE
 func (net.UnknownNetworkError).Error CAPABILITY_SAFE
 func (net.UnknownNetworkError).Temporary CAPABILITY_SAFE
 func (net.UnknownNetworkError).Timeout CAPABILITY_SAFE
@@ -208,10 +253,14 @@ func (net.canceledError).Is CAPABILITY_SAFE
 func (net.fileAddr).Network CAPABILITY_SAFE
 func (net.fileAddr).String CAPABILITY_SAFE
 func (net.hostLookupOrder).String CAPABILITY_SAFE
+func (*net.ipStackCapabilities).probe CAPABILITY_SAFE
 func (*net.notFoundError).Error CAPABILITY_SAFE
+func (*net.nsswitchConfig).init CAPABILITY_SAFE
 func (*net.onlyValuesCtx).Value CAPABILITY_SAFE
+func (*net.pipe).Close$1 CAPABILITY_SAFE
 func (net.pipeAddr).Network CAPABILITY_SAFE
 func (net.pipeAddr).String CAPABILITY_SAFE
+func (*net.resolverConfig).init CAPABILITY_SAFE
 func (*net.temporaryError).Error CAPABILITY_SAFE
 func (*net.temporaryError).Temporary CAPABILITY_SAFE
 func (*net.temporaryError).Timeout CAPABILITY_SAFE
@@ -220,7 +269,12 @@ func (*net.timeoutError).Is CAPABILITY_SAFE
 func (*net.timeoutError).Temporary CAPABILITY_SAFE
 func (*net.timeoutError).Timeout CAPABILITY_SAFE
 
+func net/http.dirList$1 CAPABILITY_SAFE
+func net/http.envProxyFunc$1 CAPABILITY_SAFE
 func net/http.init CAPABILITY_SAFE
+func net/http.init$1 CAPABILITY_SAFE
+func net/http.init$2 CAPABILITY_SAFE
+func net/http.init$3 CAPABILITY_SAFE
 func net/http.CanonicalHeaderKey CAPABILITY_SAFE
 func net/http.DetectContentType CAPABILITY_SAFE
 func net/http.ParseCookie CAPABILITY_SAFE
@@ -257,6 +311,9 @@ func (*net/http.Request).SetBasicAuth CAPABILITY_SAFE
 func (*net/http.Request).SetPathValue CAPABILITY_SAFE
 func (*net/http.Request).UserAgent CAPABILITY_SAFE
 func (*net/http.Request).WithContext CAPABILITY_SAFE
+func (*net/http.Server).onceSetNextProtoDefaults CAPABILITY_SAFE
+func (*net/http.Server).onceSetNextProtoDefaults_Serve CAPABILITY_SAFE
+func (*net/http.Transport).onceSetNextProtoDefaults CAPABILITY_SAFE
 func (net/http.connectMethodKey).String CAPABILITY_SAFE
 func (*net/http.contextKey).String CAPABILITY_SAFE
 func (*net/http.socksAddr).String CAPABILITY_SAFE
@@ -296,10 +353,15 @@ func (*net/http.http2writeData).String CAPABILITY_SAFE
 func (net/http.http2UnknownFrame).String CAPABILITY_SAFE
 func (net/http.http2WindowUpdateFrame).String CAPABILITY_SAFE
 func (net/http.issue22091Error).Error CAPABILITY_SAFE
+func (*net/http.noBody).Close CAPABILITY_SAFE
+func (*net/http.noBody).Read CAPABILITY_SAFE
+func (*net/http.noBody).WriteTo CAPABILITY_SAFE
 func (net/http.nothingWrittenError).Unwrap CAPABILITY_SAFE
+func (*net/http.onceCloseListener).close CAPABILITY_SAFE
 func (*net/http.pattern).String CAPABILITY_SAFE
 func (net/http.statusError).Error CAPABILITY_SAFE
 func (*net/http.timeoutError).Error CAPABILITY_SAFE
+func (*net/http.timeoutError).Is CAPABILITY_SAFE
 func (*net/http.timeoutError).Temporary CAPABILITY_SAFE
 func (*net/http.timeoutError).Timeout CAPABILITY_SAFE
 func (net/http.tlsHandshakeTimeoutError).Error CAPABILITY_SAFE
@@ -308,8 +370,14 @@ func (net/http.tlsHandshakeTimeoutError).Timeout CAPABILITY_SAFE
 func (net/http.transportReadFromServerError).Error CAPABILITY_SAFE
 func (net/http.transportReadFromServerError).Unwrap CAPABILITY_SAFE
 func (*net/http.unsupportedTEError).Error CAPABILITY_SAFE
+func (net/http/internal/http2.StreamError).As CAPABILITY_SAFE
+func net/http/internal/http2.curGoroutineID CAPABILITY_SAFE
+func (*net/http/internal/http2.serverConn).startGracefulShutdown$1 CAPABILITY_SAFE
+func net/http/internal/httpcommon.buildCommonHeaderMaps CAPABILITY_SAFE
 
 func (net/netip.Addr).WithZone CAPABILITY_SAFE
+
+func net/rpc.init CAPABILITY_SAFE
 
 func os.Chdir MODIFY_SYSTEM_STATE/CHDIR
 func os.Chmod CAPABILITY_FILES
@@ -375,6 +443,7 @@ func os.UserCacheDir CAPABILITY_READ_SYSTEM_STATE
 func os.UserConfigDir CAPABILITY_READ_SYSTEM_STATE
 func os.UserHomeDir CAPABILITY_READ_SYSTEM_STATE
 func os.WriteFile CAPABILITY_FILES
+func os.checkPidfd CAPABILITY_SAFE
 func os.init CAPABILITY_SAFE
 func os.init$1 CAPABILITY_SAFE
 func (*os.File).Chdir MODIFY_SYSTEM_STATE/CHDIR
@@ -471,9 +540,13 @@ func (os/exec.wrappedError).Error CAPABILITY_UNSPECIFIED
 func (os/exec.wrappedError).Unwrap CAPABILITY_SAFE
 
 func os/signal.Ignored CAPABILITY_READ_SYSTEM_STATE
+func os/signal.Notify$2$1 CAPABILITY_SAFE
 func os/signal.init CAPABILITY_SAFE
+func (os/signal.signalError).Error CAPABILITY_SAFE
+func (os/signal.signalError).Is CAPABILITY_SAFE
 
 func os/user.Current CAPABILITY_READ_SYSTEM_STATE
+func os/user.Current$1 CAPABILITY_SAFE
 func os/user.Lookup CAPABILITY_READ_SYSTEM_STATE
 func os/user.LookupGroup CAPABILITY_READ_SYSTEM_STATE
 func os/user.LookupGroupId CAPABILITY_READ_SYSTEM_STATE
@@ -492,6 +565,7 @@ func reflect.Indirect CAPABILITY_SAFE
 func reflect.TypeOf CAPABILITY_SAFE
 func reflect.ValueOf CAPABILITY_SAFE
 func reflect.VisibleFields CAPABILITY_SAFE
+func reflect.funcLayout$1 CAPABILITY_SAFE
 func reflect.init CAPABILITY_SAFE
 func (reflect.ChanDir).String CAPABILITY_SAFE
 func (reflect.Kind).String CAPABILITY_SAFE
@@ -681,6 +755,9 @@ func runtime/debug.init CAPABILITY_SAFE
 func runtime/metrics.Read CAPABILITY_RUNTIME
 func (runtime/metrics.Value).Float64Histogram CAPABILITY_SAFE
 func runtime/pprof.init CAPABILITY_SAFE
+func (*runtime/pprof.keysByCount).Len CAPABILITY_SAFE
+func (*runtime/pprof.keysByCount).Less CAPABILITY_SAFE
+func (*runtime/pprof.keysByCount).Swap CAPABILITY_SAFE
 func (*runtime/pprof.labelMap).String CAPABILITY_SAFE
 func runtime/trace.userLog CAPABILITY_SAFE
 func runtime/trace.userRegion CAPABILITY_SAFE
@@ -754,6 +831,7 @@ func (*strings.Builder).copyCheck CAPABILITY_SAFE
 func sync.fastrandn CAPABILITY_SAFE
 func sync.fatal CAPABILITY_SAFE
 func sync.init CAPABILITY_SAFE
+func sync.poolRaceAddr CAPABILITY_SAFE
 func sync.runtime_LoadAcquintptr CAPABILITY_SAFE
 func sync.runtime_Semacquire CAPABILITY_SAFE
 func sync.runtime_SemacquireMutex CAPABILITY_SAFE
@@ -781,6 +859,8 @@ func (*sync.Mutex).Lock CAPABILITY_SAFE
 func (*sync.Mutex).TryLock CAPABILITY_SAFE
 func (*sync.Mutex).Unlock CAPABILITY_SAFE
 func (*sync.Pool).Put CAPABILITY_SAFE
+func (*sync.Pool).getSlow CAPABILITY_SAFE
+func (*sync.Pool).pin CAPABILITY_SAFE
 func (*sync.RWMutex).Lock CAPABILITY_SAFE
 func (*sync.RWMutex).RLock CAPABILITY_SAFE
 func (*sync.RWMutex).RLocker CAPABILITY_SAFE
@@ -789,6 +869,7 @@ func (*sync.RWMutex).TryLock CAPABILITY_SAFE
 func (*sync.RWMutex).TryRLock CAPABILITY_SAFE
 func (*sync.RWMutex).Unlock CAPABILITY_SAFE
 func (*sync.WaitGroup).Wait CAPABILITY_SAFE
+func (*sync.poolChain).popHead CAPABILITY_SAFE
 
 func sync/atomic.CompareAndSwapPointer CAPABILITY_UNSAFE_POINTER
 func sync/atomic.StorePointer CAPABILITY_UNSAFE_POINTER
@@ -796,6 +877,7 @@ func sync/atomic.SwapPointer CAPABILITY_UNSAFE_POINTER
 
 func syscall.init CAPABILITY_SAFE
 func syscall.init$1 CAPABILITY_SAFE
+func syscall.init$2 CAPABILITY_SAFE
 func syscall.Getenv CAPABILITY_READ_SYSTEM_STATE
 func (*syscall.DLLError).Error CAPABILITY_SAFE
 func (*syscall.DLLError).Unwrap CAPABILITY_SAFE
@@ -973,6 +1055,7 @@ package hash/fnv CAPABILITY_SAFE
 package hash/maphash CAPABILITY_SAFE
 package internal/bytealg CAPABILITY_SAFE
 package internal/cpu CAPABILITY_SAFE
+package internal/poll CAPABILITY_SAFE
 package internal/reflectlite CAPABILITY_SAFE
 package internal/runtime/maps CAPABILITY_SAFE
 package internal/synctest CAPABILITY_SAFE
