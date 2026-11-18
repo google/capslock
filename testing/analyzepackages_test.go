@@ -8,11 +8,14 @@ package analyzepackages_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -461,6 +464,35 @@ func TestCompare(t *testing.T) {
 				t.Errorf("%v: expected output line %q", test, expected)
 			}
 		}
+	}
+}
+
+// TestPackageOutput checks that -output=package works when the capability map
+// defines a capability that isn't one of the Capability enum values.  The
+// Capability field is left unset for those capabilities, so the package output
+// mode has to report the capability name instead.
+func TestPackageOutput(t *testing.T) {
+	name := filepath.Join(t.TempDir(), "custom.cm")
+	if err := os.WriteFile(name, []byte("func os.Getpid TESTCAP\n"), 0o600); err != nil {
+		t.Fatalf("writing capability map: %v", err)
+	}
+	cmd := exec.Command(bin, "-packages=../testpkgs/callos", "-output=package", "-capability_map="+name)
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("running capslock: %v", err)
+	}
+	got := make(map[string][]string)
+	if err := json.Unmarshal(output.Bytes(), &got); err != nil {
+		t.Fatalf("parsing output %q: %v", output.String(), err)
+	}
+	caps, ok := got["github.com/google/capslock/testpkgs/callos"]
+	if !ok {
+		t.Fatalf("output %q does not mention the callos package", output.String())
+	}
+	if !slices.Contains(caps, "TESTCAP") {
+		t.Errorf("capabilities of the callos package are %v, want them to include TESTCAP", caps)
 	}
 }
 

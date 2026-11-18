@@ -79,12 +79,15 @@ func RunCapslock(args []string, output string, pkgs []*packages.Package, queried
 		// Build a map of packages to unique capabilities.
 		capabilitiesByPackageSets := make(map[string]map[string]struct{})
 		for _, capabilityInfo := range cil.CapabilityInfo {
+			// The Capability enum field is unset when the capability is a
+			// caller-defined one that isn't in the enum, so use the name instead.
+			capability := capabilityInfo.GetCapabilityName()
 			for _, path := range capabilityInfo.Path {
 				if _, ok := capabilitiesByPackageSets[*path.Package]; ok {
-					capabilitiesByPackageSets[*path.Package][capabilityInfo.Capability.String()] = struct{}{}
+					capabilitiesByPackageSets[*path.Package][capability] = struct{}{}
 				} else {
 					capabilitiesByPackageSets[*path.Package] = map[string]struct{}{
-						capabilityInfo.Capability.String(): {},
+						capability: {},
 					}
 				}
 			}
