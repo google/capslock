@@ -109,6 +109,8 @@ func RunCapslock(args []string, output string, pkgs []*packages.Package, queried
 		return ctm.Execute(os.Stdout, cil)
 	} else if output == "g" || output == "graph" {
 		return graphOutput(pkgs, queriedPackages, config)
+	} else if output == "graph-json" || output == "graph_json" {
+		return graphJSONOutput(pkgs, queriedPackages, config)
 	}
 	cil := GetCapabilityCounts(pkgs, queriedPackages, config)
 	ctm := template.Must(template.New("default.tmpl").Funcs(templateFuncMap).ParseFS(staticContent, "static/default.tmpl"))

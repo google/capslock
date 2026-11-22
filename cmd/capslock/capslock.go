@@ -33,7 +33,7 @@ import (
 
 var (
 	packageList    = flag.String("packages", "", "target patterns to be analysed; allows wildcarding")
-	output         = flag.String("output", "", "output mode to use; non-default options are json, m, package, v, graph, and compare")
+	output         = flag.String("output", "", "output mode to use; non-default options are json, m, package, v, graph, graph-json, and compare")
 	verbose        = flag.Int("v", 0, "verbosity level")
 	noiseFlag      = flag.Bool("noisy", false, "include output on unanalyzed function calls (can be noisy)")
 	customMap      = flag.String("capability_map", "", "use a custom capability map file")
@@ -46,6 +46,8 @@ var (
 	memprofile     = flag.String("memprofile", "", "write memory profile to specified file")
 	granularity    = flag.String("granularity", "",
 		`the granularity to use for comparisons, either "package" or "function".`)
+	graphFunction    = flag.String("graph_function", "", "for -output=graph-json, only emit the graph reachable from this exact function name")
+	graphPerFunction = flag.Bool("graph_per_function", false, "for -output=graph-json, emit one graph for each reachable queried function")
 	forceLocalModule = flag.Bool("force_local_module", false, "if the requested packages cannot be loaded in the current workspace, return an error immediately, instead of trying to load them in a temporary module")
 	omitPaths        = flag.Bool("omit_paths", false, "omit example call paths from output")
 	version          = flag.Bool("version", false, "report Capslock version and exit")
@@ -210,11 +212,13 @@ func run() error {
 		return fmt.Errorf("Some packages had errors. Aborting analysis.")
 	}
 	err = analyzer.RunCapslock(flag.Args(), *output, pkgs, queriedPackages, &analyzer.Config{
-		Classifier:     classifier,
-		DisableBuiltin: *disableBuiltin,
-		Granularity:    g,
-		CapabilitySet:  cs,
-		OmitPaths:      *omitPaths,
+		Classifier:       classifier,
+		DisableBuiltin:   *disableBuiltin,
+		Granularity:      g,
+		CapabilitySet:    cs,
+		GraphFunction:    *graphFunction,
+		GraphPerFunction: *graphPerFunction,
+		OmitPaths:        *omitPaths,
 	})
 
 	if *memprofile != "" {
